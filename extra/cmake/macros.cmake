@@ -69,6 +69,7 @@ macro(add_assignment target sources)
   target_link_libraries(${target} PRIVATE fast_obj)
   target_link_libraries(${target} PRIVATE glm)
   target_link_libraries(${target} PRIVATE imgui)
+  target_link_libraries(${target} PRIVATE imguizmo)
   target_link_libraries(${target} PRIVATE sokol)
   target_link_libraries(${target} PRIVATE stb)
 
