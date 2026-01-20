@@ -8,11 +8,22 @@
 
 // batteries
 #include "batteries/opengl.h"
+#include "batteries/lights.h"
+
+struct {
+    float alpha = 2.0f;
+
+} debug;
 
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/default.fs");
+    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
+
+    light = {
+        .color = {1.0f, 0.0f, 1.0f},
+        .position = {2.0f, 2.0f, 2.0f},  
+    };
 }
 
 Scene::~Scene()
@@ -44,12 +55,17 @@ void Scene::Render(void)
     blinnphong->setMat4("view_proj", view_proj);
     blinnphong->setVec3("camera_position", camera.position);
 
+    // Set uniforms
+    blinnphong->setVec3("camera", camera.position);
+    blinnphong->setVec3("light.position", light.position);
+    blinnphong->setVec3("light.color", light.color);
+    blinnphong->setFloat("alpha", debug.alpha);
+
     // draw suzanne
     suzanne->draw();
 }
 
 glm::mat4 identity(1.0f);
-glm::mat4 thebourne_identity(1.0f);
 
 void Scene::Debug(void)
 {
@@ -62,7 +78,12 @@ void Scene::Debug(void)
 
     ImGuizmo::DrawGrid(&view[0][0], &proj[0][0], glm::value_ptr(identity), 10.0f);
 
-    ImGuizmo::Manipulate(&view[0][0], &proj[0][0], ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::LOCAL, &thebourne_identity[0][0]);
+    auto light_matrix = glm::translate(glm::mat4(1.0f), light.position);
+    ImGuizmo::Manipulate(&view[0][0], &proj[0][0], ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::WORLD, glm::value_ptr(light_matrix));
+
+    if (ImGuizmo::IsUsing()){
+        light.position = glm::vec3(light_matrix[3]);
+    }
 
     cameracontroller.Debug();
 
@@ -72,6 +93,8 @@ void Scene::Debug(void)
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
 
     /* build debug ui here */
+    ImGui::SliderFloat("Debug Alpha", &debug.alpha, 0.0f, 128.0f);
+    ImGui::ColorPicker3("Suzanne Color", &light.color[0]);
 
     ImGui::End();
 }
