@@ -25,6 +25,8 @@ in vec2 vs_texcoord;
 uniform vec3 camera;
 uniform Light light;
 uniform Material material;
+uniform float alpha;
+uniform vec3 ambientColor;
 
 vec3 blinnphong(vec3 normal, vec3 fragPos, Light light) {
     vec3 view_dir = normalize(camera - fragPos);
@@ -48,7 +50,7 @@ vec3 blinnphong(vec3 normal, vec3 fragPos, Light light) {
 
 void main()
 {
-  vec3 lighting = blinnphong(vs_normal, vs_position, light) + material.ambient;
+  vec3 lighting = blinnphong(vs_normal, vs_position, light) + alpha * ambientColor * material.ambient;
   vec3 object_color = vs_normal * 0.5 + 0.5;
   vec3 final_color = object_color * lighting;
 

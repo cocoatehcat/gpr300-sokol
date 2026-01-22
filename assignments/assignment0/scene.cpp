@@ -11,7 +11,8 @@
 #include "batteries/lights.h"
 
 struct {
-    float alpha = 2.0f;
+    float alpha = 1.0f;
+    glm::vec3 ambient = {0.3, 0.3, 0.3};
 
 } debug;
 
@@ -67,7 +68,8 @@ void Scene::Render(void)
     blinnphong->setVec3("camera", camera.position);
     blinnphong->setVec3("light.position", light.position);
     blinnphong->setVec3("light.color", light.color);
-    //blinnphong->setFloat("alpha", debug.alpha);
+    blinnphong->setFloat("alpha", debug.alpha);
+    blinnphong->setVec3("ambientColor", debug.ambient);
     blinnphong->setVec3("material.ambient", material.ambient);
     blinnphong->setVec3("material.diffuse", material.diffuse);
     blinnphong->setVec3("material.specular", material.specular);
@@ -105,7 +107,7 @@ void Scene::Debug(void)
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
 
     /* build debug ui here */
-    //ImGui::SliderFloat("Debug Alpha", &debug.alpha, 0.0f, 128.0f);
+    ImGui::SliderFloat("Debug Alpha", &debug.alpha, 0.0f, 1.0f);
     ImGui::ColorEdit3("Suzanne Color", &light.color[0]);
 
     ImGui::End();
