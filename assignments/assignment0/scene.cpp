@@ -10,9 +10,13 @@
 #include "batteries/opengl.h"
 #include "batteries/lights.h"
 
+#include "cocoa/materialsReader.h"
+
 struct {
     float alpha = 1.0f;
     glm::vec3 ambient = {0.3, 0.3, 0.3};
+
+    std::string selectedIndex = 0;
 
 } debug;
 
@@ -33,6 +37,10 @@ Scene::Scene()
         .shininess = {2},
 
     };
+
+    MaterialsReader reader;
+
+    matList = reader.createMatList("assets/txt/materials.txt");
 }
 
 Scene::~Scene()
@@ -107,8 +115,34 @@ void Scene::Debug(void)
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
 
     /* build debug ui here */
-    ImGui::SliderFloat("Debug Alpha", &debug.alpha, 0.0f, 1.0f);
-    ImGui::ColorEdit3("Suzanne Color", &light.color[0]);
+    ImGui::SeparatorText("Ambient");
+    ImGui::SliderFloat("Intensity", &debug.alpha, 0.0f, 1.0f);
+    ImGui::ColorEdit3("Color", &light.color[0]);
+
+    ImGui::SeparatorText("Material");
+    /*if (ImGui::BeginCombo("Materials", "Presets")) {
+        for (const auto& i : matList) {
+            std::string start = i.first;
+            batteries::material_t end = i.second;
+            const char* startChar = start.c_str();
+            const bool isSelected = (debug.selectedIndex == start);
+            if (ImGui::Selectable(startChar, isSelected)) {
+                debug.selectedIndex = start;
+            }
+
+            // Set the initial focus when opening the combo
+            // (scrolling + keyboard navigation focus)
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+
+        }
+        ImGui::EndCombo();
+    } */
+    ImGui::SliderFloat3("Ambient", &material.ambient[0], 0.0f, 1.0f);
+    ImGui::SliderFloat3("Diffuse", &material.diffuse[0], 0.0f, 1.0f);
+    ImGui::SliderFloat3("Specular", &material.specular[0], 0.0f, 1.0f);
+    ImGui::SliderFloat("Shininess", &material.shininess, 2.0f, 128.0f);
 
     ImGui::End();
 }
