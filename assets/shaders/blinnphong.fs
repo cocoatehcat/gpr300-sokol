@@ -25,8 +25,6 @@ in vec2 vs_texcoord;
 uniform vec3 camera;
 uniform Light light;
 uniform Material material;
-uniform float alpha;
-uniform vec3 ambientColor;
 
 vec3 blinnphong(vec3 normal, vec3 fragPos, Light light) {
     vec3 view_dir = normalize(camera - fragPos);

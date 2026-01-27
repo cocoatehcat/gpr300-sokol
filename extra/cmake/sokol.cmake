@@ -29,7 +29,6 @@ if(BUILD_WITH_SOKOL)
     target_compile_options(sokol PRIVATE -x objective-c)
     target_link_libraries(sokol
         "-framework QuartzCore"
-        "-framework Cocoa"
         "-framework OpenGL"
         "-framework AudioToolbox")
   elseif (CMAKE_SYSTEM_NAME STREQUAL Linux)

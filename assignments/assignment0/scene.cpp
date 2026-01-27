@@ -10,10 +10,18 @@
 #include "batteries/opengl.h"
 #include "batteries/lights.h"
 
+//#include "cocoa/materialsReader.h"
+
 struct {
+<<<<<<< HEAD
     float alpha = 1.0f;
     glm::vec3 ambient = {0.3, 0.3, 0.3};
     int selectedIndex = 0;
+=======
+    float alpha = 2.0f;
+
+    std::string selectedIndex = 0;
+>>>>>>> 176121dedd5f1671f119b833b53f3927baacffb6
 
 } debug;
 
@@ -34,6 +42,10 @@ Scene::Scene()
         .shininess = {2},
 
     };
+
+    //MaterialsReader reader;
+
+    //matList = reader.createMatList("assets/txt/materials.txt");
 }
 
 Scene::~Scene()
@@ -69,8 +81,7 @@ void Scene::Render(void)
     blinnphong->setVec3("camera", camera.position);
     blinnphong->setVec3("light.position", light.position);
     blinnphong->setVec3("light.color", light.color);
-    blinnphong->setFloat("alpha", debug.alpha);
-    blinnphong->setVec3("ambientColor", debug.ambient);
+    //blinnphong->setFloat("alpha", debug.alpha);
     blinnphong->setVec3("material.ambient", material.ambient);
     blinnphong->setVec3("material.diffuse", material.diffuse);
     blinnphong->setVec3("material.specular", material.specular);

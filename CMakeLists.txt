@@ -16,6 +16,7 @@ include("extra/cmake/macros.cmake")
 # thirdparty
 include("extra/cmake/assimp.cmake")
 include("extra/cmake/batteries.cmake")
+include("extra/cmake/cocoa.cmake")
 include("extra/cmake/dbgui.cmake")
 include("extra/cmake/ew.cmake")
 include("extra/cmake/fast_obj.cmake")
