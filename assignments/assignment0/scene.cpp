@@ -13,8 +13,7 @@
 //#include "cocoa/materialsReader.h"
 
 struct {
-    float alpha = 1.0f;
-    glm::vec3 ambient = {0.3, 0.3, 0.3};
+    float alpha = 2.0f;
 
     std::string selectedIndex = 0;
 
@@ -76,8 +75,7 @@ void Scene::Render(void)
     blinnphong->setVec3("camera", camera.position);
     blinnphong->setVec3("light.position", light.position);
     blinnphong->setVec3("light.color", light.color);
-    blinnphong->setFloat("alpha", debug.alpha);
-    blinnphong->setVec3("ambientColor", debug.ambient);
+    //blinnphong->setFloat("alpha", debug.alpha);
     blinnphong->setVec3("material.ambient", material.ambient);
     blinnphong->setVec3("material.diffuse", material.diffuse);
     blinnphong->setVec3("material.specular", material.specular);
