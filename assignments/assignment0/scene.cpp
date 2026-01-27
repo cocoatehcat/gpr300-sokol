@@ -10,7 +10,7 @@
 #include "batteries/opengl.h"
 #include "batteries/lights.h"
 
-#include "cocoa/materialsReader.h"
+//#include "cocoa/materialsReader.h"
 
 struct {
     float alpha = 1.0f;
@@ -38,9 +38,9 @@ Scene::Scene()
 
     };
 
-    MaterialsReader reader;
+    //MaterialsReader reader;
 
-    matList = reader.createMatList("assets/txt/materials.txt");
+    //matList = reader.createMatList("assets/txt/materials.txt");
 }
 
 Scene::~Scene()

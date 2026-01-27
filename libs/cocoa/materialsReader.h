@@ -11,14 +11,10 @@
 #include <sstream>
 #include <vector>
 
-#include "glm/vec3.hpp"
 #include "batteries/materials.h"
 
 class MaterialsReader {
     public:
     std::unordered_map<std::string, batteries::material_t> createMatList(std::string file);
-
-    private:
-    std::string fileName;
 
 };

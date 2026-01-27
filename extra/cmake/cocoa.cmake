@@ -13,5 +13,4 @@ if(BUILD_WITH_COCOA)
 
   target_link_libraries(cocoa PRIVATE batteries)
   target_link_libraries(cocoa PRIVATE glm)
-
 endif()
