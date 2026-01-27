@@ -38,7 +38,7 @@ vec3 blinnphong(vec3 normal, vec3 fragPos, Light light) {
     float specular = pow(max(dot(normal, half_dir), 0.0), material.shininess);
 
     // Assign lighting based off material
-    vec3 lightColor = (material.diffuse * diffuse + material.specular * specular) * light.color;
+    vec3 lightColor = (material.ambient + (material.diffuse * diffuse + material.specular * specular)) * light.color;
 
     return lightColor;
 
@@ -50,7 +50,7 @@ vec3 blinnphong(vec3 normal, vec3 fragPos, Light light) {
 
 void main()
 {
-  vec3 lighting = blinnphong(vs_normal, vs_position, light) + alpha * ambientColor * material.ambient;
+  vec3 lighting = blinnphong(vs_normal, vs_position, light) + (alpha * ambientColor);
   vec3 object_color = vs_normal * 0.5 + 0.5;
   vec3 final_color = object_color * lighting;
 
