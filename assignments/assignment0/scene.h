@@ -1,5 +1,4 @@
 #pragma once
-#include <unordered_map>
 
 // batteries
 #include "batteries/scene.h"
@@ -27,5 +26,4 @@ class Scene final : public batteries::Scene
 
     batteries::light_t light;
     batteries::material_t material;
-    std::unordered_map<std::string, batteries::material_t> matList;
 };
