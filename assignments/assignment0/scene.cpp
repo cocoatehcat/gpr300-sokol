@@ -29,7 +29,7 @@ static std::vector<mats> matList = {
     {"default", {{0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, 1.0f}},
 
     // http://devernay.free.fr/cours/opengl/materials.html
-    // Since my file reader imploded we will just do this the hideous was
+    // Since my file reader imploded we will just do this the hideous way
     {"emerald", {{0.0215f, 0.1745f, 0.0215f}, {0.07568f, 0.61424f, 0.07568f}, {0.633f, 0.727811f, 0.633f}, 0.6f}},
     {"jade", {{0.135f, 0.2225f, 0.1575f}, {0.54f, 0.89f, 0.63f}, {0.316228f, 0.316228f, 0.316228f}, 0.1}},
     {"obsidian", {{0.05375f, 0.05f, 0.06625f}, {0.18275f, 0.17f, 0.22525f}, {0.332741f, 0.328634f, 0.346435f}, 0.3f}},
@@ -62,6 +62,8 @@ Scene::Scene()
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
     leaves = std::make_unique<ew::Texture>("assets/textures/leaves2.jpeg");
+    ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
+    normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
@@ -95,6 +97,12 @@ void Scene::Render(void)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, leaves->getID());
 
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, ornament->getID());
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, normalMap->getID());
+
     blinnphong->use();
 
     // scene matrices
@@ -117,7 +125,8 @@ void Scene::Render(void)
     blinnphong->setFloat("material.shininess", material.shininess);
 
     // Texture test
-    blinnphong->setInt("mainTexture", 0);
+    blinnphong->setInt("mainTexture", 1);
+    blinnphong->setInt("normalMap", 2);
 
     // draw suzanne
     suzanne->draw();

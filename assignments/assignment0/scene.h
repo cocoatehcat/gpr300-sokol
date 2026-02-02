@@ -25,6 +25,8 @@ class Scene final : public batteries::Scene
     std::unique_ptr<ew::Shader> blinnphong;
 
     std::unique_ptr<ew::Texture> leaves;
+    std::unique_ptr<ew::Texture> ornament;
+    std::unique_ptr<ew::Texture> normalMap;
 
     batteries::light_t light;
     batteries::material_t material;
