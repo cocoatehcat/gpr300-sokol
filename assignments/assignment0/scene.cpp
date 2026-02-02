@@ -56,10 +56,12 @@ static std::vector<mats> matList = {
     {"yellow rubber", {{0.05f, 0.05f, 0.0f}, {0.5f, 0.5f, 0.4f}, {0.7f, 0.7f, 0.04f}, 0.078125f}},
 };
 
+
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
+    leaves = std::make_unique<ew::Texture>("assets/textures/leaves2.jpeg");
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
@@ -90,6 +92,9 @@ void Scene::Render(void)
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, leaves->getID());
+
     blinnphong->use();
 
     // scene matrices
@@ -110,6 +115,9 @@ void Scene::Render(void)
     blinnphong->setVec3("material.diffuse", material.diffuse);
     blinnphong->setVec3("material.specular", material.specular);
     blinnphong->setFloat("material.shininess", material.shininess);
+
+    // Texture test
+    blinnphong->setInt("mainTexture", 0);
 
     // draw suzanne
     suzanne->draw();
