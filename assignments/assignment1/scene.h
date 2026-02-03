@@ -4,6 +4,7 @@
 #include "batteries/scene.h"
 #include "batteries/lights.h"
 #include "batteries/materials.h"
+#include "batteries/opengl.h" //Has to be include in everything Scene is
 
 // ew
 #include "ew/model.h"
@@ -30,4 +31,7 @@ class Scene final : public batteries::Scene
 
     batteries::light_t light;
     batteries::material_t material;
+
+    GLuint fbo; // frame buffer object
+    GLuint fbo_texture;
 };
