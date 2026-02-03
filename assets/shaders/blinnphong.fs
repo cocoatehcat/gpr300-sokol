@@ -41,7 +41,7 @@ vec3 blinnphong(vec3 normal, vec3 fragPos, Light light, vec3 texture) {
     float specular = pow(max(dot(normal, half_dir), 0.0), material.shininess);
 
     // Assign lighting based off material
-    vec3 lightColor = (material.ambient + (material.diffuse * diffuse * texture + material.specular * specular)) * light.color;
+    vec3 lightColor = (material.ambient * texture + (material.diffuse * diffuse * texture + material.specular * specular)) * light.color;
 
     return lightColor;
 

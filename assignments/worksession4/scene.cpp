@@ -60,10 +60,9 @@ static std::vector<mats> matList = {
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
-    leaves = std::make_unique<ew::Texture>("assets/textures/leaves2.jpeg");
-    ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
-    normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
+    toon = std::make_unique<ew::Shader>("assets/shaders/toon.vs", "assets/shaders/toon.fs");
+    ornament = std::make_unique<ew::Texture>("assets/textures/leaves2.jpeg");
+    toonShader = std::make_unique<ew::Texture>("assets/textures/ZAToon.png");
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
@@ -94,39 +93,38 @@ void Scene::Render(void)
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, leaves->getID());
-
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, ornament->getID());
 
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, normalMap->getID());
+    glBindTexture(GL_TEXTURE_2D, toonShader->getID());
 
-    blinnphong->use();
+    toon->use();
 
     // scene matrices
-    blinnphong->setMat4("model", glm::mat4(1.0f));
-    blinnphong->setMat4("view_proj", view_proj);
-    blinnphong->setVec3("camera_position", camera.position);
+    toon->setMat4("model", glm::mat4(1.0f));
+    toon->setMat4("view_proj", view_proj);
+    toon->setVec3("camera_position", camera.position);
 
     // Set uniforms
-    blinnphong->setVec3("camera", camera.position);
-    blinnphong->setVec3("light.position", light.position);
-    blinnphong->setVec3("light.color", light.color);
-    blinnphong->setFloat("alpha", debug.alpha);
-    blinnphong->setVec3("ambientColor", debug.ambient);
+    toon->setVec3("camera", camera.position);
+    toon->setVec3("light.position", light.position);
+    toon->setVec3("light.color", light.color);
+    toon->setFloat("alpha", debug.alpha);
+    toon->setVec3("ambientColor", debug.ambient);
+    toon->setVec3("pal.color1", palette.color1);
+    toon->setVec3("pal.color2", palette.color2);
 
     // Updating uniforms for lighting
     auto material = matList[debug.selectedIndex].material;
-    blinnphong->setVec3("material.ambient", material.ambient);
-    blinnphong->setVec3("material.diffuse", material.diffuse);
-    blinnphong->setVec3("material.specular", material.specular);
-    blinnphong->setFloat("material.shininess", material.shininess);
+    toon->setVec3("material.ambient", material.ambient);
+    toon->setVec3("material.diffuse", material.diffuse);
+    toon->setVec3("material.specular", material.specular);
+    toon->setFloat("material.shininess", material.shininess);
 
     // Texture test
-    blinnphong->setInt("mainTexture", 1);
-    blinnphong->setInt("normalMap", 2);
+    toon->setInt("mainTexture", 1);
+    toon->setInt("toonShader", 2);
 
     // draw suzanne
     suzanne->draw();
@@ -163,6 +161,10 @@ void Scene::Debug(void)
     ImGui::SeparatorText("Ambient");
     ImGui::SliderFloat("Intensity", &debug.alpha, 0.0f, 1.0f);
     ImGui::ColorEdit3("Color", &light.color[0]);
+
+    ImGui::SeparatorText("Palette");
+    ImGui::ColorEdit3("Color1", &palette.color1[0]);
+    ImGui::ColorEdit3("Color2", &palette.color2[0]);
 
     ImGui::SeparatorText("Material");
     if (ImGui::BeginCombo("Presets", matList[debug.selectedIndex].name.c_str())) {
