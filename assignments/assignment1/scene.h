@@ -25,6 +25,9 @@ class Scene final : public batteries::Scene
     std::unique_ptr<ew::Model> suzanne;
     std::unique_ptr<ew::Shader> blinnphong;
 
+    // Post process
+    std::unique_ptr<ew::Shader> postProcess;
+
     std::unique_ptr<ew::Texture> leaves;
     std::unique_ptr<ew::Texture> ornament;
     std::unique_ptr<ew::Texture> normalMap;
@@ -34,4 +37,5 @@ class Scene final : public batteries::Scene
 
     GLuint fbo; // frame buffer object
     GLuint fbo_texture;
+    GLuint fbo_depth;
 };

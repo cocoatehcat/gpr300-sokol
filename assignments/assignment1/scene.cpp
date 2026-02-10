@@ -16,8 +16,11 @@ struct {
     float alpha = 1.0f;
     glm::vec3 ambient = {0.3, 0.3, 0.3};
     int selectedIndex = 0;
+    float strength = 10.0f;
 
 } debug;
+
+glm::mat4 identity(1.0f);
 
 typedef struct // making new type of struct instead of unordered map
 {
@@ -56,6 +59,41 @@ static std::vector<mats> matList = {
     {"yellow rubber", {{0.05f, 0.05f, 0.0f}, {0.5f, 0.5f, 0.4f}, {0.7f, 0.7f, 0.04f}, 0.078125f}},
 };
 
+struct fullscreenQuad
+{
+    GLuint vao;
+    GLuint vbo;
+
+    void Init() {
+        float vertices[] = {
+            // pos (x, y), texcoord (u, v)
+            -1.0f, 1.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f,
+            1.0f, -1.0f, 1.0f, 0.0f,
+
+            -1.0f, 1.0f, 0.0f, 1.0f,
+            1.0f, -1.0f, 1.0f, 0.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+        };
+
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(sizeof(float) * 2));
+
+        // Always last
+        glBindVertexArray(0);
+    }
+} fullQuad;
 
 Scene::Scene()
 {
@@ -65,10 +103,14 @@ Scene::Scene()
     ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
     normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
 
+    postProcess = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/blur.fs");
+
     light = {
         .color = {1.0f, 0.0f, 1.0f},
         .position = {2.0f, 2.0f, 2.0f},  
     };
+
+    fullQuad.Init();
 
     glCreateFramebuffers(1, &fbo);
 
@@ -77,11 +119,22 @@ Scene::Scene()
     { // Create Texture
         glGenTextures(1, &fbo_texture);
         glBindTexture(GL_TEXTURE_2D, fbo_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+
+        glGenTextures(1, &fbo_depth);
+        glBindTexture(GL_TEXTURE_2D, fbo_depth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, fbo_depth, 0);
+
+        // clean up
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
         printf("It's not complete :(\n");
@@ -106,57 +159,73 @@ void Scene::Update(float dt)
 
 void Scene::Render(void)
 {
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    // {
-    const auto view_proj = camera.Projection() * camera.View();
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Suzanne Pipeline
+    {
+        const auto view_proj = camera.Projection() * camera.View();
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glEnable(GL_DEPTH_TEST);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, ornament->getID());
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glEnable(GL_DEPTH_TEST);
 
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, normalMap->getID());
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, ornament->getID());
 
-    blinnphong->use();
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, normalMap->getID());
 
-    // scene matrices
-    blinnphong->setMat4("model", glm::mat4(1.0f));
-    blinnphong->setMat4("view_proj", view_proj);
-    blinnphong->setVec3("camera_position", camera.position);
+        blinnphong->use();
 
-    // Set uniforms
-    blinnphong->setVec3("camera", camera.position);
-    blinnphong->setVec3("light.position", light.position);
-    blinnphong->setVec3("light.color", light.color);
-    blinnphong->setFloat("alpha", debug.alpha);
-    blinnphong->setVec3("ambientColor", debug.ambient);
+        // scene matrices
+        blinnphong->setMat4("model", glm::mat4(1.0f));
+        blinnphong->setMat4("view_proj", view_proj);
+        blinnphong->setVec3("camera_position", camera.position);
 
-    // Updating uniforms for lighting
-    auto material = matList[debug.selectedIndex].material;
-    blinnphong->setVec3("material.ambient", material.ambient);
-    blinnphong->setVec3("material.diffuse", material.diffuse);
-    blinnphong->setVec3("material.specular", material.specular);
-    blinnphong->setFloat("material.shininess", material.shininess);
+        // Set uniforms
+        blinnphong->setVec3("camera", camera.position);
+        blinnphong->setVec3("light.position", light.position);
+        blinnphong->setVec3("light.color", light.color);
+        blinnphong->setFloat("alpha", debug.alpha);
+        blinnphong->setVec3("ambientColor", debug.ambient);
 
-    // Texture test
-    blinnphong->setInt("mainTexture", 1);
-    blinnphong->setInt("normalMap", 2);
+        // Updating uniforms for lighting
+        auto material = matList[debug.selectedIndex].material;
+        blinnphong->setVec3("material.ambient", material.ambient);
+        blinnphong->setVec3("material.diffuse", material.diffuse);
+        blinnphong->setVec3("material.specular", material.specular);
+        blinnphong->setFloat("material.shininess", material.shininess);
 
-    // draw suzanne
-    suzanne->draw();
-    // }
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // Texture test
+        blinnphong->setInt("mainTexture", 1);
+        blinnphong->setInt("normalMap", 2);
+
+        // draw suzanne
+        suzanne->draw();
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    { // Post processing pipeline
+        // render fullscreen quad
+        postProcess->use();
+        postProcess->setInt("screen", 0);
+        postProcess->setFloat("strength", debug.strength);
+
+        glDisable(GL_DEPTH_TEST);
+
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // draw fullscreen
+        glBindVertexArray(fullQuad.vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, fbo_texture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
 }
-
-glm::mat4 identity(1.0f);
 
 void Scene::Debug(void)
 {
@@ -211,8 +280,12 @@ void Scene::Debug(void)
     ImGui::SliderFloat3("Specular", &material.specular[0], 0.0f, 1.0f);
     ImGui::SliderFloat("Shininess", &material.shininess, 2.0f, 128.0f);
 
-    ImGui::SeparatorText("Image");
+    ImGui::SeparatorText("Framebuffer");
+    ImGui::SliderFloat("Kernel Strength", &debug.strength, 0.0f, 300.0f);
+
+    ImGui::SeparatorText("Framebuffer");
     ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::Image((void*)(intptr_t)fbo_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
 
     ImGui::End();
 }
