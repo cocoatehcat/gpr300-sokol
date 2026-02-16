@@ -59,6 +59,20 @@ static std::vector<mats> matList = {
     {"yellow rubber", {{0.05f, 0.05f, 0.0f}, {0.5f, 0.5f, 0.4f}, {0.7f, 0.7f, 0.04f}, 0.078125f}},
 };
 
+typedef struct {
+    const std::string name;
+    const std::unique_ptr<ew::Shader> postProcess;
+} postProc;
+
+static std::vector<postProc> postProcesses = {
+    {"none", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/fullscreen.fs")},
+
+    // Custom Shaders
+    {"toon", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/toon.fs")},
+    {"greyscale", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/greyscale.fs")},
+    {"blur", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/blur.fs")},
+};
+
 struct fullscreenQuad
 {
     GLuint vao;
