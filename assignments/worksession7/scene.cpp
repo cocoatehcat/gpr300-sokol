@@ -16,8 +16,13 @@ struct {
     float alpha = 1.0f;
     glm::vec3 ambient = {0.3, 0.3, 0.3};
     int selectedIndex = 0;
-    glm::vec3 waterCol = {0.0f, 0.0f, 1.0f};
+    glm::vec3 waterCol = {0.2f, 0.45f, 0.66f};
 
+    float warpScale = 0.2f;
+    float albedoScale = 5.0f;
+    float specScale = 1.0f;
+    float upper = 1.0f;
+    float lower = 0.3f;
 } debug;
 
 Scene::Scene()
@@ -80,9 +85,16 @@ void Scene::Render(void)
     
     // Texture test
     water->setInt("waveSpec", 0);
+    water->setInt("waveTex", 1);
+    water->setInt("waveWarp", 2);
     water->setVec3("waterColor", debug.waterCol);
 
     water->setFloat("time", (float)time.absolute);
+    water->setFloat("warpScale", debug.warpScale);
+    water->setFloat("albedoScale", debug.albedoScale);
+    water->setFloat("specScale", debug.specScale);
+    water->setFloat("upper", debug.upper);
+    water->setFloat("lower", debug.lower);
 
     // draw the plane
     plane.draw();
@@ -115,7 +127,13 @@ void Scene::Debug(void)
     ImGui::Checkbox("Paused", &time.paused);
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
 
+    ImGui::SeparatorText("Water Settings");
     ImGui::ColorEdit3("Water Color", &debug.waterCol[0]);
+    ImGui::SliderFloat("Warp Scale", &debug.warpScale, 0.0f, 10.0f);
+    ImGui::SliderFloat("Albedo Scale", &debug.albedoScale, 0.0f, 10.0f);
+    ImGui::SliderFloat("Specular Scale", &debug.specScale, 0.0f, 10.0f);
+    ImGui::SliderFloat("Upper Bound", &debug.upper, 0.0f, 1.0f);
+    ImGui::SliderFloat("Lower Bound", &debug.lower, 0.0f, 1.0f);
 
     ImGui::End();
 }
