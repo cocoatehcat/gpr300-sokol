@@ -23,13 +23,11 @@ struct {
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
-    water = std::make_unique<ew::Shader>("assets/shaders/windwaker/water.vs", "assets/shaders/windwaker/water.fs");
+    water = std::make_unique<ew::Shader>("assets/shaders/doubledash/water.vs", "assets/shaders/doubledash/water.fs");
 
-    texture128 = std::make_unique<ew::Texture>("assets/textures/water128.png");
-    texture64 = std::make_unique<ew::Texture>("assets/textures/water64.png");
-    texture32 = std::make_unique<ew::Texture>("assets/textures/water32.png");
-    texture16 = std::make_unique<ew::Texture>("assets/textures/water16.png");
-    texture8 = std::make_unique<ew::Texture>("assets/textures/water8.png");
+    waveSpec = std::make_unique<ew::Texture>("assets/textures/wave_spec.png");
+    waveTex = std::make_unique<ew::Texture>("assets/textures/wave_tex.png");
+    waveWarp = std::make_unique<ew::Texture>("assets/textures/wave_warp.png");
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
@@ -62,13 +60,13 @@ void Scene::Render(void)
     glEnable(GL_DEPTH_TEST);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture128->getID());
+    glBindTexture(GL_TEXTURE_2D, waveSpec->getID());
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture64->getID());
+    glBindTexture(GL_TEXTURE_2D, waveTex->getID());
 
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, texture32->getID());
+    glBindTexture(GL_TEXTURE_2D, waveWarp->getID());
 
     water->use();
 
@@ -81,7 +79,7 @@ void Scene::Render(void)
     water->setVec3("camera", camera.position);
     
     // Texture test
-    water->setInt("texture128", 0);
+    water->setInt("waveSpec", 0);
     water->setVec3("waterColor", debug.waterCol);
 
     water->setFloat("time", (float)time.absolute);

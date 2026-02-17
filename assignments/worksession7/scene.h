@@ -26,11 +26,9 @@ class Scene final : public batteries::Scene
     std::unique_ptr<ew::Model> suzanne;
     std::unique_ptr<ew::Shader> water;
 
-    std::unique_ptr<ew::Texture> texture128;
-    std::unique_ptr<ew::Texture> texture64;
-    std::unique_ptr<ew::Texture> texture32;
-    std::unique_ptr<ew::Texture> texture16;
-    std::unique_ptr<ew::Texture> texture8;
+    std::unique_ptr<ew::Texture> waveSpec;
+    std::unique_ptr<ew::Texture> waveWarp;
+    std::unique_ptr<ew::Texture> waveTex;
 
     ew::Mesh plane;
 
