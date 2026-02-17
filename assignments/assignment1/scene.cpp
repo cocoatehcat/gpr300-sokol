@@ -61,7 +61,7 @@ static std::vector<mats> matList = {
 
 // typedef struct {
 //     const std::string name;
-//     const std::unique_ptr<ew::Shader> postProcess;
+//     const std::unique_ptr<ew::Shader> postProcessing;
 // } postProc;
 
 // static std::vector<postProc> postProcesses = {
