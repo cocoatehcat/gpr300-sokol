@@ -65,6 +65,7 @@ enum EFFECT_NAMES {
     GREYSCALE = 2,
     EDGE = 3,
     SHARPEN = 4,
+    GAMMA = 5,
 } effectType;
 
 static std::vector<std::string> processingNames = {
@@ -73,6 +74,7 @@ static std::vector<std::string> processingNames = {
     "Greyscale",
     "Edge Detection",
     "Sharpen",
+    "Gamma Correction",
 };
 
 struct Framebuffer {
@@ -166,6 +168,8 @@ void assignEffect(ew::Shader* shader) {
             break;
         case SHARPEN:
             break;
+        case GAMMA:
+            break;
         default:
             break;
     }
@@ -196,7 +200,8 @@ Scene::Scene()
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/greyscale.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/edgeDetect.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/sharpen.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/sharpen.fs"));  
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/gamma.fs"));
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
