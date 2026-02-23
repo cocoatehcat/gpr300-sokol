@@ -59,30 +59,18 @@ static std::vector<mats> matList = {
     {"yellow rubber", {{0.05f, 0.05f, 0.0f}, {0.5f, 0.5f, 0.4f}, {0.7f, 0.7f, 0.04f}, 0.078125f}},
 };
 
-// typedef struct {
-//     const std::string name;
-//     const std::unique_ptr<ew::Shader> postProcessing;
-// } postProc;
-
-// static std::vector<postProc> postProcesses = {
-//     {"none", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/fullscreen.fs")},
-
-//     // Custom Shaders
-//     {"toon", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/toon.fs")},
-//     {"greyscale", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/greyscale.fs")},
-//     {"blur", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/blur.fs")},
-// };
-
 enum EFFECT_NAMES {
     NONE = 0,
     BLUR = 1,
     GREYSCALE = 2,
+    EDGE = 3,
 } effectType;
 
 static std::vector<std::string> processingNames = {
     "None",
     "Blur",
     "Greyscale",
+    "Edge Detection",
 };
 
 struct Framebuffer {
@@ -172,6 +160,9 @@ void assignEffect(ew::Shader* shader) {
             break;
         case GREYSCALE:
             break;
+        case EDGE:
+            shader->setFloat("strength", debug.strength);
+            break;
         default:
             break;
     }
@@ -201,6 +192,7 @@ Scene::Scene()
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/fullscreen.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/greyscale.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/edgeDetect.fs"));
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
@@ -354,7 +346,9 @@ void Scene::Debug(void)
         ImGui::EndCombo();
     }
     
-    ImGui::SliderFloat("Kernel Strength", &debug.strength, 0.0f, 300.0f);
+    if (debug.indexEffect == BLUR) {
+        ImGui::SliderFloat("Kernel Strength", &debug.strength, 0.0f, 300.0f);
+    }
 
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
         ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
