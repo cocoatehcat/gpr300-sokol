@@ -64,6 +64,7 @@ enum EFFECT_NAMES {
     BLUR = 1,
     GREYSCALE = 2,
     EDGE = 3,
+    SHARPEN = 4,
 } effectType;
 
 static std::vector<std::string> processingNames = {
@@ -71,6 +72,7 @@ static std::vector<std::string> processingNames = {
     "Blur",
     "Greyscale",
     "Edge Detection",
+    "Sharpen",
 };
 
 struct Framebuffer {
@@ -161,7 +163,8 @@ void assignEffect(ew::Shader* shader) {
         case GREYSCALE:
             break;
         case EDGE:
-            shader->setFloat("strength", debug.strength);
+            break;
+        case SHARPEN:
             break;
         default:
             break;
@@ -193,6 +196,7 @@ Scene::Scene()
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/greyscale.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/edgeDetect.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/sharpen.fs"));
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
