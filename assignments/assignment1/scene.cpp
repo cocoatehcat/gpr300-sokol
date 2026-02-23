@@ -10,13 +10,13 @@
 #include "batteries/opengl.h"
 #include "batteries/lights.h"
 
-//#include "cocoa/materialsReader.h"
-
 struct {
     float alpha = 1.0f;
     glm::vec3 ambient = {0.3, 0.3, 0.3};
     int selectedIndex = 0;
+    int indexEffect = 0;
     float strength = 10.0f;
+    int textureChoice = 0;
 
 } debug;
 
@@ -73,6 +73,59 @@ static std::vector<mats> matList = {
 //     {"blur", std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/blur.fs")},
 // };
 
+enum EFFECT_NAMES {
+    NONE = 0,
+    BLUR = 1,
+    GREYSCALE = 2,
+} effectType;
+
+static std::vector<std::string> processingNames = {
+    "None",
+    "Blur",
+    "Greyscale",
+};
+
+struct Framebuffer {
+
+    GLuint framefbo; // frame buffer object
+    GLuint framefbo_texture;
+    GLuint framefbo_depth;
+    
+    void init() {
+        glCreateFramebuffers(1, &framefbo);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, framefbo);
+
+        { // Create Texture
+            glGenTextures(1, &framefbo_texture);
+            glBindTexture(GL_TEXTURE_2D, framefbo_texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framefbo_texture, 0);
+
+            glGenTextures(1, &framefbo_depth);
+            glBindTexture(GL_TEXTURE_2D, framefbo_depth);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, framefbo_depth, 0);
+
+            // clean up
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
+            printf("It's not complete :(\n");
+        }
+
+        // Has to unbind or else it will create a black screen
+        // All functions will be operating on Framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+} framebuff;
+
 struct fullscreenQuad
 {
     GLuint vao;
@@ -109,15 +162,45 @@ struct fullscreenQuad
     }
 } fullQuad;
 
+void assignEffect(ew::Shader* shader) {
+    shader->use();
+    shader->setInt("screen", 0);
+
+    switch(debug.indexEffect) {
+        case BLUR:
+            shader->setFloat("strength", debug.strength);
+            break;
+        case GREYSCALE:
+            break;
+        default:
+            break;
+    }
+
+    glDisable(GL_DEPTH_TEST);
+
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // draw fullscreen
+    glBindVertexArray(fullQuad.vao);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, framebuff.framefbo_texture);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
-    leaves = std::make_unique<ew::Texture>("assets/textures/leaves2.jpeg");
+    colorblind = std::make_unique<ew::Texture>("assets/textures/colorblind.png");
     ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
     normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
 
-    postProcess = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/blur.fs");
+    postProcess = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs");
+
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/fullscreen.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/greyscale.fs"));
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
@@ -126,37 +209,7 @@ Scene::Scene()
 
     fullQuad.Init();
 
-    glCreateFramebuffers(1, &fbo);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-    { // Create Texture
-        glGenTextures(1, &fbo_texture);
-        glBindTexture(GL_TEXTURE_2D, fbo_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
-
-        glGenTextures(1, &fbo_depth);
-        glBindTexture(GL_TEXTURE_2D, fbo_depth);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, fbo_depth, 0);
-
-        // clean up
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
-        printf("It's not complete :(\n");
-    }
-
-    // Has to unbind or else it will create a black screen
-    // All functions will be operating on Framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    framebuff.init();
 }
 
 Scene::~Scene()
@@ -173,7 +226,7 @@ void Scene::Update(float dt)
 
 void Scene::Render(void)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuff.framefbo);
 
     // Suzanne Pipeline
     {
@@ -185,6 +238,9 @@ void Scene::Render(void)
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glEnable(GL_DEPTH_TEST);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colorblind->getID());
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, ornament->getID());
@@ -214,31 +270,14 @@ void Scene::Render(void)
         blinnphong->setFloat("material.shininess", material.shininess);
 
         // Texture test
-        blinnphong->setInt("mainTexture", 1);
-        blinnphong->setInt("normalMap", 2);
+        blinnphong->setInt("mainTexture", debug.textureChoice);
 
         // draw suzanne
         suzanne->draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    { // Post processing pipeline
-        // render fullscreen quad
-        postProcess->use();
-        postProcess->setInt("screen", 0);
-        postProcess->setFloat("strength", debug.strength);
-
-        glDisable(GL_DEPTH_TEST);
-
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // draw fullscreen
-        glBindVertexArray(fullQuad.vao);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fbo_texture);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
+    assignEffect(postProcessingEffects[debug.indexEffect].get());
 }
 
 void Scene::Debug(void)
@@ -267,7 +306,8 @@ void Scene::Debug(void)
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
 
     /* build debug ui here */
-    ImGui::SeparatorText("Ambient");
+    ImGui::SeparatorText("Material/Ambient");
+    ImGui::SliderInt("Texture Choice", &debug.textureChoice, 0, 1);
     ImGui::SliderFloat("Intensity", &debug.alpha, 0.0f, 1.0f);
     ImGui::ColorEdit3("Color", &light.color[0]);
 
@@ -289,17 +329,37 @@ void Scene::Debug(void)
         ImGui::EndCombo();
     }
     auto material = matList[debug.selectedIndex].material; // Updating the values
-    ImGui::SliderFloat3("Ambient", &material.ambient[0], 0.0f, 1.0f);
-    ImGui::SliderFloat3("Diffuse", &material.diffuse[0], 0.0f, 1.0f);
-    ImGui::SliderFloat3("Specular", &material.specular[0], 0.0f, 1.0f);
-    ImGui::SliderFloat("Shininess", &material.shininess, 2.0f, 128.0f);
+    if (ImGui::CollapsingHeader("Material Details")) {
+        ImGui::SliderFloat3("Ambient", &material.ambient[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Diffuse", &material.diffuse[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Specular", &material.specular[0], 0.0f, 1.0f);
+        ImGui::SliderFloat("Shininess", &material.shininess, 2.0f, 128.0f);
+    }
 
-    ImGui::SeparatorText("Framebuffer");
+    ImGui::SeparatorText("Post Processing Effects");
+    if (ImGui::BeginCombo("Effect", processingNames[debug.indexEffect].c_str())) {
+        for (int i = 0; i < processingNames.size(); i++) {
+            const bool isSelected = (processingNames[debug.indexEffect] == processingNames[i]);
+            if (ImGui::Selectable(processingNames[i].c_str(), isSelected)) {
+                debug.indexEffect = i;
+            }
+
+            // Set the initial focus when opening the combo
+            // (scrolling + keyboard navigation focus)
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+
+        }
+        ImGui::EndCombo();
+    }
+    
     ImGui::SliderFloat("Kernel Strength", &debug.strength, 0.0f, 300.0f);
 
-    ImGui::SeparatorText("Framebuffer");
-    ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-    ImGui::Image((void*)(intptr_t)fbo_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+    if (ImGui::CollapsingHeader("Framebuffer Images")) {
+        ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)framebuff.framefbo_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+    }
 
     ImGui::End();
 }

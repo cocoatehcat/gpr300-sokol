@@ -29,7 +29,7 @@ uniform Material material;
 uniform float alpha;
 uniform vec3 ambientColor;
 uniform sampler2D mainTexture;
-uniform sampler2D normalMap;  
+//uniform sampler2D normalMap;  
 
 vec3 blinnphong(vec3 normal, vec3 fragPos, Light light, vec3 texture) {
     vec3 view_dir = normalize(camera - fragPos);
@@ -54,9 +54,9 @@ vec3 blinnphong(vec3 normal, vec3 fragPos, Light light, vec3 texture) {
 void main()
 {
     vec3 texture_color = texture(mainTexture, vs_texcoord).rbg;
-    vec3 normal_color = texture(normalMap, vs_texcoord).rbg;
-    normal_color = normalize(normal_color * 2.0 - 1.0);
-    vec3 lighting = blinnphong(normal_color, vs_position, light, texture_color) + (alpha * ambientColor * texture_color);
+    //vec3 normal_color = texture(normalMap, vs_texcoord).rbg;
+    //normal_color = normalize(normal_color * 2.0 - 1.0);
+    vec3 lighting = blinnphong(vs_normal, vs_position, light, texture_color) + (alpha * ambientColor * texture_color);
     vec3 object_color = vs_normal * 0.5 + 0.5;
     vec3 final_color = object_color * lighting;
     

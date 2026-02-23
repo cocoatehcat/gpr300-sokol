@@ -29,7 +29,7 @@ class Scene final : public batteries::Scene
     std::unique_ptr<ew::Shader> postProcess;
     std::vector<std::unique_ptr<ew::Shader>> postProcessingEffects;
 
-    std::unique_ptr<ew::Texture> leaves;
+    std::unique_ptr<ew::Texture> colorblind;
     std::unique_ptr<ew::Texture> ornament;
     std::unique_ptr<ew::Texture> normalMap;
 
