@@ -66,6 +66,7 @@ enum EFFECT_NAMES {
     EDGE = 3,
     SHARPEN = 4,
     GAMMA = 5,
+    CHROMATIC = 6,
 } effectType;
 
 static std::vector<std::string> processingNames = {
@@ -75,6 +76,7 @@ static std::vector<std::string> processingNames = {
     "Edge Detection",
     "Sharpen",
     "Gamma Correction",
+    "Chromatic Abberation",
 };
 
 struct Framebuffer {
@@ -170,6 +172,8 @@ void assignEffect(ew::Shader* shader) {
             break;
         case GAMMA:
             break;
+        case CHROMATIC:
+            break;
         default:
             break;
     }
@@ -202,6 +206,7 @@ Scene::Scene()
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/edgeDetect.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/sharpen.fs"));  
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/gamma.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/chromatic.fs"));
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
