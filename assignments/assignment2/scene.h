@@ -10,6 +10,8 @@
 #include "ew/model.h"
 #include "ew/shader.h"
 #include "ew/texture.h"
+#include "ew/mesh.h"
+#include "ew/procGen.h"
 
 class Scene final : public batteries::Scene
 {
@@ -25,6 +27,9 @@ class Scene final : public batteries::Scene
     std::unique_ptr<ew::Model> suzanne;
     std::unique_ptr<ew::Shader> blinnphong;
 
+    std::unique_ptr<ew::Shader> depth;
+    ew::Mesh plane;
+
     // Post process
     std::unique_ptr<ew::Shader> postProcess;
     std::vector<std::unique_ptr<ew::Shader>> postProcessingEffects;
@@ -39,4 +44,12 @@ class Scene final : public batteries::Scene
     GLuint fbo; // frame buffer object
     GLuint fbo_texture;
     GLuint fbo_depth;
+
+    // Depth
+    GLuint shadow_fbo; // frame buffer object
+    GLuint shadow_depth;
+
+    void createFrameBuffer();
+    void createDepthBuffer();
+    void assignEffect(ew::Shader* shader);
 };

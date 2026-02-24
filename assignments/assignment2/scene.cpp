@@ -18,6 +18,8 @@ struct {
     float strength = 10.0f;
     int textureChoice = 0;
 
+    glm::vec3 suzannePos = glm::vec3(1.0);
+
 } debug;
 
 glm::mat4 identity(1.0f);
@@ -79,6 +81,75 @@ static std::vector<std::string> processingNames = {
     "Chromatic Abberation",
 };
 
+struct {
+    GLuint fbo;
+    GLuint depth;
+
+    void init() {
+        glCreateFramebuffers(1, &fbo);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+        { // Create Depth
+            glGenTextures(1, &depth);
+            glBindTexture(GL_TEXTURE_2D, depth);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 800, 600, 0, GL_DEPTH, GL_UNSIGNED_SHORT, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth, 0);
+
+            // clean up
+            //glBindTexture(GL_TEXTURE_2D, 0);
+            glDrawBuffers(0, nullptr);
+            glReadBuffer(GL_NONE);
+        }
+        // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, shadow_depth);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
+            printf("It's not complete for depth :(\n");
+        }
+
+        // Has to unbind or else it will create a black screen
+        // All functions will be operating on Framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+} shadowBuffer;
+
+void Scene::createDepthBuffer() {
+    glCreateFramebuffers(1, &shadow_fbo);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, shadow_fbo);
+
+    { // Create Depth
+        glGenTextures(1, &shadow_depth);
+        glBindTexture(GL_TEXTURE_2D, shadow_depth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, 800, 600, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadow_depth, 0);
+
+        // clean up
+        //glBindTexture(GL_TEXTURE_2D, 0);
+        glDrawBuffers(0, nullptr);
+        glReadBuffer(GL_NONE);
+    }
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, shadow_depth);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
+        printf("It's not complete for depth :(\n");
+    }
+
+    // Has to unbind or else it will create a black screen
+    // All functions will be operating on Framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 struct Framebuffer {
 
     GLuint framefbo; // frame buffer object
@@ -120,6 +191,41 @@ struct Framebuffer {
     }
 } framebuff;
 
+void Scene::createFrameBuffer() {
+    glCreateFramebuffers(1, &fbo);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    { // Create Texture
+        glGenTextures(1, &fbo_texture);
+        glBindTexture(GL_TEXTURE_2D, fbo_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+
+        glGenTextures(1, &fbo_depth);
+        glBindTexture(GL_TEXTURE_2D, fbo_depth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, fbo_depth, 0);
+
+        // clean up
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
+        printf("It's not complete :(\n");
+    }
+
+    // Has to unbind or else it will create a black screen
+    // All functions will be operating on Framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+    
+
 struct fullscreenQuad
 {
     GLuint vao;
@@ -156,7 +262,7 @@ struct fullscreenQuad
     }
 } fullQuad;
 
-void assignEffect(ew::Shader* shader) {
+void Scene::assignEffect(ew::Shader* shader) {
     shader->use();
     shader->setInt("screen", 0);
 
@@ -186,17 +292,19 @@ void assignEffect(ew::Shader* shader) {
     // draw fullscreen
     glBindVertexArray(fullQuad.vao);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, framebuff.framefbo_texture);
+    glBindTexture(GL_TEXTURE_2D, fbo_texture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
+    blinnphong = std::make_unique<ew::Shader>("assets/shaders/defaultShadowMap.vs", "assets/shaders/blinnphongShadowMap.fs");
     colorblind = std::make_unique<ew::Texture>("assets/textures/colorblind.png");
     ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
     normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
+
+    depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
     postProcess = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs");
 
@@ -208,6 +316,8 @@ Scene::Scene()
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/gamma.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/chromatic.fs"));
 
+    plane.load(ew::createPlane(100.0, 100.0, 10));
+
     light = {
         .color = {1.0f, 0.0f, 1.0f},
         .position = {2.0f, 2.0f, 2.0f},  
@@ -215,12 +325,15 @@ Scene::Scene()
 
     fullQuad.Init();
 
-    framebuff.init();
+    createFrameBuffer();
+
+    createDepthBuffer();
 }
 
 Scene::~Scene()
 {
     glDeleteBuffers(1, &fbo);
+    glDeleteBuffers(1, &shadow_fbo);
 }
 
 void Scene::Update(float dt)
@@ -232,8 +345,13 @@ void Scene::Update(float dt)
 
 void Scene::Render(void)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuff.framefbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
+    auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
+
+    const auto light_proj = glm::ortho(-10.0f, +10.0f, -10.0f, +10.0f, 0.1f, 100.0f);
+    const auto light_view = glm::lookAt(light.position, glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
+    const auto light_view_proj = light_proj * light_view;
     // Suzanne Pipeline
     {
         const auto view_proj = camera.Projection() * camera.View();
@@ -254,12 +372,16 @@ void Scene::Render(void)
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, normalMap->getID());
 
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, shadow_depth);
+
         blinnphong->use();
 
         // scene matrices
-        blinnphong->setMat4("model", glm::mat4(1.0f));
+        blinnphong->setMat4("model", suzanne_matrix);
         blinnphong->setMat4("view_proj", view_proj);
         blinnphong->setVec3("camera_position", camera.position);
+        blinnphong->setMat4("light_view_proj", light_view_proj);
 
         // Set uniforms
         blinnphong->setVec3("camera", camera.position);
@@ -277,8 +399,36 @@ void Scene::Render(void)
 
         // Texture test
         blinnphong->setInt("mainTexture", debug.textureChoice);
+        blinnphong->setInt("shadowMap", 3);
 
         // draw suzanne
+        suzanne->draw();
+
+        // Move plane
+        const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
+        blinnphong->setMat4("model", plane_matrix);
+        plane.draw();
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Render Scene by Light
+
+    glBindFramebuffer(GL_FRAMEBUFFER, shadow_fbo);
+    {
+        // local scope
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glEnable(GL_DEPTH_TEST);
+
+        glViewport(0, 0, 800, 600);
+        glClear(GL_DEPTH_BUFFER_BIT);
+
+        depth->use();
+
+        // scene matrices
+        depth->setMat4("model", suzanne_matrix);
+        depth->setMat4("light_view_proj", light_view_proj);
+
         suzanne->draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -297,12 +447,21 @@ void Scene::Debug(void)
 
     ImGuizmo::DrawGrid(&view[0][0], &proj[0][0], glm::value_ptr(identity), 10.0f);
 
+    ImGuizmo::SetID(1);
     auto light_matrix = glm::translate(glm::mat4(1.0f), light.position);
     ImGuizmo::Manipulate(&view[0][0], &proj[0][0], ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::WORLD, glm::value_ptr(light_matrix));
 
     if (ImGuizmo::IsUsing()){
         light.position = glm::vec3(light_matrix[3]);
     }
+
+    ImGuizmo::SetID(2);
+    auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
+    ImGuizmo::Manipulate(&view[0][0], &proj[0][0], ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::WORLD, glm::value_ptr(suzanne_matrix));
+
+    if (ImGuizmo::IsUsing()){
+        debug.suzannePos = glm::vec3(suzanne_matrix[3]);
+    }    
 
     cameracontroller.Debug();
 
@@ -350,8 +509,6 @@ void Scene::Debug(void)
                 debug.indexEffect = i;
             }
 
-            // Set the initial focus when opening the combo
-            // (scrolling + keyboard navigation focus)
             if (isSelected) {
                 ImGui::SetItemDefaultFocus();
             }
@@ -365,8 +522,8 @@ void Scene::Debug(void)
     }
 
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
-        ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Image((void*)(intptr_t)framebuff.framefbo_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)shadow_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     ImGui::End();

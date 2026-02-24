@@ -366,7 +366,7 @@ void Scene::Debug(void)
 
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
         ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Image((void*)(intptr_t)framebuff.framefbo_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        //ImGui::Image((void*)(intptr_t)framebuff.framefbo_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     ImGui::End();
