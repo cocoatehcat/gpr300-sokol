@@ -69,6 +69,8 @@ enum EFFECT_NAMES {
     CHROMATIC = 6,
     FILM = 7,
     RED_GREEN = 8,
+    BLUE_YELLOW = 9,
+    WATERCOLOR = 10,
 } effectType;
 
 static std::vector<std::string> processingNames = {
@@ -80,7 +82,9 @@ static std::vector<std::string> processingNames = {
     "Gamma Correction",
     "Chromatic Abberation",
     "Film Grain",
-    "Red Green Colorblindness",
+    "Red-Green Colorblindness",
+    "Blue-Yellow Colorblindness",
+    "Watercolor",
 };
 
 struct Framebuffer {
@@ -182,6 +186,10 @@ void assignEffect(ew::Shader* shader) {
             break;
         case RED_GREEN:
             break;
+        case BLUE_YELLOW:
+            break;
+        case WATERCOLOR:
+            break;
         default:
             break;
     }
@@ -217,6 +225,8 @@ Scene::Scene()
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/chromatic.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/filmgrain.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/redgreen.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/tritanopia.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/watercolor.fs"));
 
     light = {
         .color = {1.0f, 0.0f, 1.0f},
