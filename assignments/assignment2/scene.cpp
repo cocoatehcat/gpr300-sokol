@@ -22,6 +22,15 @@ struct {
 
 } debug;
 
+struct {
+    float kernelStrength = 10.0f;
+    float gamma = 2.2f;
+    float distortion = 0.75f;
+    float filmStrength = 1.0f;
+    float watercolorStrength = 50.0f;
+
+} ppDebug;
+
 glm::mat4 identity(1.0f);
 
 typedef struct // making new type of struct instead of unordered map
@@ -69,6 +78,10 @@ enum EFFECT_NAMES {
     SHARPEN = 4,
     GAMMA = 5,
     CHROMATIC = 6,
+    FILM = 7,
+    RED_GREEN = 8,
+    BLUE_YELLOW = 9,
+    WATERCOLOR = 10,
 } effectType;
 
 static std::vector<std::string> processingNames = {
@@ -79,6 +92,10 @@ static std::vector<std::string> processingNames = {
     "Sharpen",
     "Gamma Correction",
     "Chromatic Abberation",
+    "Film Grain",
+    "Red-Green Colorblindness",
+    "Blue-Yellow Colorblindness",
+    "Watercolor",
 };
 
 struct {
@@ -268,7 +285,7 @@ void Scene::assignEffect(ew::Shader* shader) {
 
     switch(debug.indexEffect) {
         case BLUR:
-            shader->setFloat("strength", debug.strength);
+            shader->setFloat("strength", ppDebug.kernelStrength);
             break;
         case GREYSCALE:
             break;
@@ -277,8 +294,20 @@ void Scene::assignEffect(ew::Shader* shader) {
         case SHARPEN:
             break;
         case GAMMA:
+            shader->setFloat("gamma", ppDebug.gamma);
             break;
         case CHROMATIC:
+            shader->setFloat("distortion", ppDebug.distortion);
+            break;
+        case FILM:
+            shader->setFloat("strength", ppDebug.filmStrength);
+            break;
+        case RED_GREEN:
+            break;
+        case BLUE_YELLOW:
+            break;
+        case WATERCOLOR:
+            shader->setFloat("strength", ppDebug.watercolorStrength);
             break;
         default:
             break;
@@ -315,6 +344,10 @@ Scene::Scene()
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/sharpen.fs"));  
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/gamma.fs"));
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/chromatic.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/filmgrain.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/redgreen.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/tritanopia.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/watercolor.fs"));
 
     plane.load(ew::createPlane(100.0, 100.0, 10));
 
@@ -518,7 +551,19 @@ void Scene::Debug(void)
     }
     
     if (debug.indexEffect == BLUR) {
-        ImGui::SliderFloat("Kernel Strength", &debug.strength, 0.0f, 300.0f);
+        ImGui::SliderFloat("Kernel Strength", &ppDebug.kernelStrength, 0.0f, 300.0f);
+    }
+    if (debug.indexEffect == GAMMA) {
+        ImGui::SliderFloat("Gamma", &ppDebug.gamma, 0.0f, 10.0f);
+    }
+    if (debug.indexEffect == CHROMATIC) {
+        ImGui::SliderFloat("Distortion", &ppDebug.distortion, 0.0f, 1.0f);
+    }
+    if (debug.indexEffect == FILM) {
+        ImGui::SliderFloat("Strength", &ppDebug.filmStrength, 0.0f, 1.0f);
+    }
+    if (debug.indexEffect == WATERCOLOR) {
+        ImGui::SliderFloat("Wiggle", &ppDebug.watercolorStrength, 0.0f, 60.0f);
     }
 
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
