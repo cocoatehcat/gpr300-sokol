@@ -31,7 +31,7 @@ class Scene final : public batteries::Scene
 
     std::unique_ptr<ew::Texture> colorblind;
     std::unique_ptr<ew::Texture> ornament;
-    std::unique_ptr<ew::Texture> normalMap;
+    std::unique_ptr<ew::Texture> leaf;
 
     batteries::light_t light;
     batteries::material_t material;

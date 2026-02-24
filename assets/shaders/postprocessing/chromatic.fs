@@ -7,8 +7,8 @@ in vec2 vs_texcoord;
 
 // Uniforms
 uniform sampler2D screen;  
+uniform float distortion;
 
-float distortion = 0.75;
 vec3 offset = vec3(0.01, 0.005, -0.005);
 const vec2 direction = vec2(1.0);
 

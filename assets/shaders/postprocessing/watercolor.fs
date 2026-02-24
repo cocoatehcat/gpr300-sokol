@@ -7,6 +7,7 @@ in vec2 vs_texcoord;
 
 // Uniforms
 uniform sampler2D screen;  
+uniform float strength;
 
 // References
 // https://www.shadertoy.com/view/slcSRM
@@ -66,17 +67,8 @@ vec4 bumpFromDepth(vec2 uv, vec2 resolution, float scale)
 void main()
 {
     vec2 screenRes = vec2(800.0, 600.0);
-    // Normalized pixel coordinates (from 0 to 1)
-    //vec2 uv = fragCoord/iResolution.xy;
-    //vec4 offset = bumpFromDepth(uv + vec2(floor(iTime*4.0)/4.0), iResolution.xy, .1)/80.0;
 
-    //fragColor = (texture(iChannel0, uv + offset.xy)*0.4) + (texture(iChannel0, uv)*0.6);
-    //fragColor += length(bumpFromDepth(uv, iResolution.xy, .1))*0.25;
-
-    vec4 offset = bumpFromDepth(vs_texcoord + vec2(floor(50) / 4.0), screenRes, 0.1) / 80.0;
-    
-    //vec3 color = texture(screen, vs_texcoord).rgb;
-    //FragColor = vec4(color, 1.0);
+    vec4 offset = bumpFromDepth(vs_texcoord + vec2(floor(strength) / 4.0), screenRes, 0.1) / 80.0;
 
     vec4 sample1 = texture(screen, vs_texcoord + offset.xy); 
     vec4 sample2 = texture(screen, vs_texcoord);

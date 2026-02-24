@@ -15,10 +15,18 @@ struct {
     glm::vec3 ambient = {0.3, 0.3, 0.3};
     int selectedIndex = 0;
     int indexEffect = 0;
-    float strength = 10.0f;
     int textureChoice = 0;
 
 } debug;
+
+struct {
+    float kernelStrength = 10.0f;
+    float gamma = 2.2f;
+    float distortion = 0.75f;
+    float filmStrength = 1.0f;
+    float watercolorStrength = 50.0f;
+
+} ppDebug;
 
 glm::mat4 identity(1.0f);
 
@@ -170,7 +178,7 @@ void assignEffect(ew::Shader* shader) {
 
     switch(debug.indexEffect) {
         case BLUR:
-            shader->setFloat("strength", debug.strength);
+            shader->setFloat("strength", ppDebug.kernelStrength);
             break;
         case GREYSCALE:
             break;
@@ -179,16 +187,20 @@ void assignEffect(ew::Shader* shader) {
         case SHARPEN:
             break;
         case GAMMA:
+            shader->setFloat("gamma", ppDebug.gamma);
             break;
         case CHROMATIC:
+            shader->setFloat("distortion", ppDebug.distortion);
             break;
         case FILM:
+            shader->setFloat("strength", ppDebug.filmStrength);
             break;
         case RED_GREEN:
             break;
         case BLUE_YELLOW:
             break;
         case WATERCOLOR:
+            shader->setFloat("strength", ppDebug.watercolorStrength);
             break;
         default:
             break;
@@ -212,7 +224,7 @@ Scene::Scene()
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
     colorblind = std::make_unique<ew::Texture>("assets/textures/colorblind.png");
     ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
-    normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
+    leaf = std::make_unique<ew::Texture>("assets/textures/leaf.png");
 
     postProcess = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs");
 
@@ -272,7 +284,7 @@ void Scene::Render(void)
         glBindTexture(GL_TEXTURE_2D, ornament->getID());
 
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, normalMap->getID());
+        glBindTexture(GL_TEXTURE_2D, leaf->getID());
 
         blinnphong->use();
 
@@ -333,7 +345,7 @@ void Scene::Debug(void)
 
     /* build debug ui here */
     ImGui::SeparatorText("Material/Ambient");
-    ImGui::SliderInt("Texture Choice", &debug.textureChoice, 0, 1);
+    ImGui::SliderInt("Texture Choice", &debug.textureChoice, 0, 2);
     ImGui::SliderFloat("Intensity", &debug.alpha, 0.0f, 1.0f);
     ImGui::ColorEdit3("Color", &light.color[0]);
 
@@ -345,8 +357,6 @@ void Scene::Debug(void)
                 debug.selectedIndex = i;
             }
 
-            // Set the initial focus when opening the combo
-            // (scrolling + keyboard navigation focus)
             if (isSelected) {
                 ImGui::SetItemDefaultFocus();
             }
@@ -370,23 +380,31 @@ void Scene::Debug(void)
                 debug.indexEffect = i;
             }
 
-            // Set the initial focus when opening the combo
-            // (scrolling + keyboard navigation focus)
             if (isSelected) {
                 ImGui::SetItemDefaultFocus();
             }
-
         }
         ImGui::EndCombo();
     }
     
     if (debug.indexEffect == BLUR) {
-        ImGui::SliderFloat("Kernel Strength", &debug.strength, 0.0f, 300.0f);
+        ImGui::SliderFloat("Kernel Strength", &ppDebug.kernelStrength, 0.0f, 300.0f);
     }
-
+    if (debug.indexEffect == GAMMA) {
+        ImGui::SliderFloat("Gamma", &ppDebug.gamma, 0.0f, 10.0f);
+    }
+    if (debug.indexEffect == CHROMATIC) {
+        ImGui::SliderFloat("Distortion", &ppDebug.distortion, 0.0f, 1.0f);
+    }
+    if (debug.indexEffect == FILM) {
+        ImGui::SliderFloat("Strength", &ppDebug.filmStrength, 0.0f, 1.0f);
+    }
+    if (debug.indexEffect == WATERCOLOR) {
+        ImGui::SliderFloat("Wiggle", &ppDebug.watercolorStrength, 0.0f, 60.0f);
+    }
+  
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
         ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-        //ImGui::Image((void*)(intptr_t)framebuff.framefbo_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     ImGui::End();
