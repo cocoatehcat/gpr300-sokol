@@ -33,19 +33,27 @@ uniform sampler2D mainTexture;
 uniform sampler2D shadowMap;
 //uniform sampler2D normalMap;  
 
+vec3 normal;
+vec3 light_dir;
+
 float shadowCalc(vec4 fragPositionLightSpace) {
-    //vec3 proj_cords = fragPositionLightSpace.xyz / fragPositionLightSpace.w;
+    vec3 proj_cords = fragPositionLightSpace.xyz / fragPositionLightSpace.w;
+    proj_cords = proj_cords * 0.5 + 0.5; // [0,1] range
 
-    //float closest = texture(shadowMap, proj_cords.xy);
-    //float current = proj_cords.z;
+    float closest = texture(shadowMap, proj_cords.xy).r;
+    float current = proj_cords.z;
 
-    float shadow = 0.25;
+    float bias = max(0.05 * (1.0 - dot(normal, light_dir)), 0.005);
+
+    // Check if in Shadow
+    float shadow = current - bias > closest ? 1.0 : 0.0;
+
     return shadow;
 }
 
 vec3 blinnphong(vec3 normal, vec3 fragPos, Light light) {
     vec3 view_dir = normalize(camera - fragPos);
-    vec3 light_dir = normalize(light.position - fragPos);
+    light_dir = normalize(light.position - fragPos);
     //vec3 reflect_dir = reflect(light_dir, view_dir);
     vec3 half_dir = normalize(light_dir + view_dir);
 
@@ -72,12 +80,13 @@ void main()
     //vec3 normal_color = texture(normalMap, vs_texcoord).rbg;
     //normal_color = normalize(normal_color * 2.0 - 1.0);
 
-    float shadow = shadowCalc(vs_light_proj_pos);
-
-    vec3 normal = normalize(vs_normal);
+    normal = normalize(vs_normal);
     vec3 lighting = blinnphong(normal, vs_position, light) + (material.ambient * ambientColor);
     vec3 object_color = normal * 0.5 + 0.5;
     vec3 final_color = object_color * lighting * texture_color;
+
+    // Shadow calc
+    float shadow = shadowCalc(vs_light_proj_pos);
     final_color *= (1.0 - shadow);
     
     FragColor = vec4(final_color, 1.0);
