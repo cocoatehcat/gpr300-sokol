@@ -17,6 +17,7 @@ struct {
     int indexEffect = 0;
     float strength = 10.0f;
     int textureChoice = 0;
+    float biasMax = 0.005f;
 
     glm::vec3 suzannePos = glm::vec3(1.0);
 
@@ -422,6 +423,7 @@ void Scene::Render(void)
         blinnphong->setVec3("light.color", light.color);
         blinnphong->setFloat("alpha", debug.alpha);
         blinnphong->setVec3("ambientColor", debug.ambient);
+        blinnphong->setFloat("biasMax", debug.biasMax);
 
         // Updating uniforms for lighting
         auto material = matList[debug.selectedIndex].material;
@@ -445,12 +447,13 @@ void Scene::Render(void)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Render Scene by Light
+    // AKA Shadows
 
     glBindFramebuffer(GL_FRAMEBUFFER, shadow_fbo);
     {
         // local scope
         glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
+        glCullFace(GL_BACK); // Switch this and it causes an error?
         glEnable(GL_DEPTH_TEST);
 
         glViewport(0, 0, 800, 600);
@@ -478,7 +481,7 @@ void Scene::Debug(void)
     ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
     ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
 
-    ImGuizmo::DrawGrid(&view[0][0], &proj[0][0], glm::value_ptr(identity), 10.0f);
+    //ImGuizmo::DrawGrid(&view[0][0], &proj[0][0], glm::value_ptr(identity), 10.0f);
 
     ImGuizmo::SetID(1);
     auto light_matrix = glm::translate(glm::mat4(1.0f), light.position);
@@ -549,26 +552,29 @@ void Scene::Debug(void)
         }
         ImGui::EndCombo();
     }
-    
-    if (debug.indexEffect == BLUR) {
-        ImGui::SliderFloat("Kernel Strength", &ppDebug.kernelStrength, 0.0f, 300.0f);
-    }
-    if (debug.indexEffect == GAMMA) {
-        ImGui::SliderFloat("Gamma", &ppDebug.gamma, 0.0f, 10.0f);
-    }
-    if (debug.indexEffect == CHROMATIC) {
-        ImGui::SliderFloat("Distortion", &ppDebug.distortion, 0.0f, 1.0f);
-    }
-    if (debug.indexEffect == FILM) {
-        ImGui::SliderFloat("Strength", &ppDebug.filmStrength, 0.0f, 1.0f);
-    }
-    if (debug.indexEffect == WATERCOLOR) {
-        ImGui::SliderFloat("Wiggle", &ppDebug.watercolorStrength, 0.0f, 60.0f);
-    }
+    { // Effects Debug
+        if (debug.indexEffect == BLUR) {
+            ImGui::SliderFloat("Kernel Strength", &ppDebug.kernelStrength, 0.0f, 300.0f);
+        }
+        if (debug.indexEffect == GAMMA) {
+            ImGui::SliderFloat("Gamma", &ppDebug.gamma, 0.0f, 10.0f);
+        }
+        if (debug.indexEffect == CHROMATIC) {
+            ImGui::SliderFloat("Distortion", &ppDebug.distortion, 0.0f, 1.0f);
+        }
+        if (debug.indexEffect == FILM) {
+            ImGui::SliderFloat("Strength", &ppDebug.filmStrength, 0.0f, 1.0f);
+        }
+        if (debug.indexEffect == WATERCOLOR) {
+            ImGui::SliderFloat("Wiggle", &ppDebug.watercolorStrength, 0.0f, 60.0f);
+        }
 
-    if (ImGui::CollapsingHeader("Framebuffer Images")) {
-        ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Image((void*)(intptr_t)shadow_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::SliderFloat("Bias", &debug.biasMax, 0.0001f, 0.07f);
+
+        if (ImGui::CollapsingHeader("Framebuffer Images")) {
+            ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+            ImGui::Image((void*)(intptr_t)shadow_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        }
     }
 
     ImGui::End();

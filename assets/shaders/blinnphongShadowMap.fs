@@ -31,10 +31,8 @@ uniform float alpha;
 uniform vec3 ambientColor;
 uniform sampler2D mainTexture;
 uniform sampler2D shadowMap;
+uniform float biasMax;
 //uniform sampler2D normalMap;  
-
-vec3 normal;
-vec3 light_dir;
 
 float shadowCalc(vec4 fragPositionLightSpace) {
     vec3 proj_cords = fragPositionLightSpace.xyz / fragPositionLightSpace.w;
@@ -43,17 +41,32 @@ float shadowCalc(vec4 fragPositionLightSpace) {
     float closest = texture(shadowMap, proj_cords.xy).r;
     float current = proj_cords.z;
 
-    float bias = max(0.05 * (1.0 - dot(normal, light_dir)), 0.005);
+    // Calculations to make sure the bias feels accurate
+    vec3 light_dir = normalize(light.position - vs_position);
+    vec3 normal = normalize(vs_normal);
+
+    float bias = max(0.05 * (1.0 - dot(normal, light_dir)), biasMax);
 
     // Check if in Shadow
-    float shadow = current - bias > closest ? 1.0 : 0.0;
+    float shadow = 0.0; //current - bias > closest ? 1.0 : 0.0;
+
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMap, proj_cords.xy + vec2(x, y) * texelSize).r; 
+            shadow += current - bias > pcfDepth ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
 
     return shadow;
 }
 
 vec3 blinnphong(vec3 normal, vec3 fragPos, Light light) {
     vec3 view_dir = normalize(camera - fragPos);
-    light_dir = normalize(light.position - fragPos);
+    vec3 light_dir = normalize(light.position - fragPos);
     //vec3 reflect_dir = reflect(light_dir, view_dir);
     vec3 half_dir = normalize(light_dir + view_dir);
 
@@ -80,7 +93,7 @@ void main()
     //vec3 normal_color = texture(normalMap, vs_texcoord).rbg;
     //normal_color = normalize(normal_color * 2.0 - 1.0);
 
-    normal = normalize(vs_normal);
+    vec3 normal = normalize(vs_normal);
     vec3 lighting = blinnphong(normal, vs_position, light) + (material.ambient * ambientColor);
     vec3 object_color = normal * 0.5 + 0.5;
     vec3 final_color = object_color * lighting * texture_color;
