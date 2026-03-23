@@ -17,6 +17,9 @@ struct {
     int indexEffect = 0;
     int textureChoice = 0;
 
+    int width = 5;
+    float spacing = 0.0f;
+
 } debug;
 
 struct {
@@ -218,6 +221,22 @@ void assignEffect(ew::Shader* shader) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+void Scene::CacheInstance() {
+    auto size = (debug.width - (-debug.width) + 1) * (debug.width - (-debug.width) + 1);
+    instanceData.resize(size);
+    auto i = 0;
+    for (auto x = -debug.width; x <= debug.width; x++) {
+        for (auto y = -debug.width; y <= debug.width; y++, i++) {
+            auto position = glm::vec3(x * debug.spacing, 0, y * debug.spacing);
+            auto matrix = glm::translate(glm::mat4(1.0f), position);
+
+            // any other calculations, (i.e. random rotation)
+
+            instanceData[i] = matrix;
+        }
+    }
+}
+
 Scene::Scene()
 {
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
@@ -248,6 +267,8 @@ Scene::Scene()
     fullQuad.Init();
 
     framebuff.init();
+
+    CacheInstance();
 }
 
 Scene::~Scene()
@@ -311,7 +332,14 @@ void Scene::Render(void)
         blinnphong->setInt("mainTexture", debug.textureChoice);
 
         // draw suzanne
-        suzanne->draw();
+        auto i = 0;
+        for (auto x = -debug.width; x <= debug.width; x++) {
+            for (auto y = -debug.width; y <= debug.width; y++, i++) {
+                blinnphong->setMat4("model", instanceData[i]);
+                suzanne->draw();
+            }
+        }
+        
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -406,6 +434,14 @@ void Scene::Debug(void)
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
         ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
     }
+
+    ImGui::SeparatorText("Many Suzannes");
+    if (ImGui::SliderInt("Width", &debug.width, 0, 100)) {
+        CacheInstance();
+    };
+    if (ImGui::SliderFloat("Spacing", &debug.spacing, 0.0f, 5.0f)) {
+        CacheInstance();
+    };
 
     ImGui::End();
 }

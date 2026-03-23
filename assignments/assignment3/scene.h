@@ -20,6 +20,7 @@ class Scene final : public batteries::Scene
     void Update(float dt);
     void Render(void);
     void Debug(void);
+    void CacheInstance();
 
   private:
     std::unique_ptr<ew::Model> suzanne;
@@ -35,6 +36,8 @@ class Scene final : public batteries::Scene
 
     batteries::light_t light;
     batteries::material_t material;
+
+    std::vector<glm::mat4> instanceData;
 
     GLuint fbo; // frame buffer object
     GLuint fbo_texture;
