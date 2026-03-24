@@ -42,4 +42,7 @@ class Scene final : public batteries::Scene
     GLuint fbo; // frame buffer object
     GLuint fbo_texture;
     GLuint fbo_depth;
+
+    // instance buffer
+    GLuint instancedBuffer;
 };

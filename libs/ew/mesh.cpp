@@ -8,11 +8,11 @@
 #include "batteries/opengl.h"
 
 namespace ew {
-	Mesh::Mesh(const MeshData& meshData)
+	Mesh::Mesh(const MeshData& meshData, bool instanced)
 	{
-		load(meshData);
+		load(meshData, instanced);
 	}
-	void Mesh::load(const MeshData& meshData)
+	void Mesh::load(const MeshData& meshData, bool instanced)
 	{
 		if (!m_initialized) {
 			glGenVertexArrays(1, &m_vao);
@@ -40,6 +40,27 @@ namespace ew {
 			glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(offsetof(Vertex, tangent)));
 			glEnableVertexAttribArray(3);
 
+			if (instanced) {
+				// mat4 -> 4 * vec4
+				glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (const void*)(0 * sizeof(glm::mat4)));
+				glEnableVertexAttribArray(4);
+
+				glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (const void*)(1 * sizeof(glm::mat4)));
+				glEnableVertexAttribArray(5);
+
+				glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (const void*)(2 * sizeof(glm::mat4)));
+				glEnableVertexAttribArray(6);
+
+				glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (const void*)(3 * sizeof(glm::mat4)));
+				glEnableVertexAttribArray(7);
+
+				glVertexAttribDivisor(4, 1);
+				glVertexAttribDivisor(5, 1);
+				glVertexAttribDivisor(6, 1);
+				glVertexAttribDivisor(7, 1);
+
+			}
+
 			m_initialized = true;
 		}
 
@@ -60,14 +81,20 @@ namespace ew {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
-	void Mesh::draw(ew::DrawMode drawMode) const
+	void Mesh::draw(ew::DrawMode drawMode, int count) const
 	{
 		glBindVertexArray(m_vao);
 		switch (drawMode)
 		{
-		case DrawMode::TRIANGLES:
-			glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, NULL);
+		case DrawMode::TRIANGLES: {
+			if (count > 1) {
+				glDrawElementsInstanced(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, NULL, count);
+			}
+			else {
+				glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, NULL);
+			}			
 			break;
+		}
 		case DrawMode::POINTS:
 			glDrawArrays(GL_POINTS, 0, m_numVertices);
 			break;

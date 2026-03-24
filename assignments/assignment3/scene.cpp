@@ -239,8 +239,8 @@ void Scene::CacheInstance() {
 
 Scene::Scene()
 {
-    suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default.vs", "assets/shaders/blinnphong.fs");
+    suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj", true);
+    blinnphong = std::make_unique<ew::Shader>("assets/shaders/default_instanced.vs", "assets/shaders/blinnphong.fs");
     colorblind = std::make_unique<ew::Texture>("assets/textures/colorblind.png");
     ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
     leaf = std::make_unique<ew::Texture>("assets/textures/leaf.png");
@@ -269,6 +269,11 @@ Scene::Scene()
     framebuff.init();
 
     CacheInstance();
+
+    // initialize instance buffer
+    glGenBuffers(1, &instancedBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, instancedBuffer);
+    glBufferData(GL_ARRAY_BUFFER, 100 * sizeof(glm::mat4), &instanceData[0], GL_DYNAMIC_DRAW);
 }
 
 Scene::~Scene()
@@ -332,13 +337,15 @@ void Scene::Render(void)
         blinnphong->setInt("mainTexture", debug.textureChoice);
 
         // draw suzanne
-        auto i = 0;
-        for (auto x = -debug.width; x <= debug.width; x++) {
-            for (auto y = -debug.width; y <= debug.width; y++, i++) {
-                blinnphong->setMat4("model", instanceData[i]);
-                suzanne->draw();
-            }
-        }
+        // auto i = 0;
+        // for (auto x = -debug.width; x <= debug.width; x++) {
+        //     for (auto y = -debug.width; y <= debug.width; y++, i++) {
+        //         blinnphong->setMat4("model", instanceData[i]);
+        //         suzanne->draw();
+        //     }
+        // }
+
+        suzanne->draw(100);
         
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
