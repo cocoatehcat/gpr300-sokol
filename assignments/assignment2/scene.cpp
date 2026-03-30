@@ -328,7 +328,7 @@ void Scene::assignEffect(ew::Shader* shader) {
 
 Scene::Scene()
 {
-    suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
+    suzanne = std::make_unique<ew::Model>("assets/models/MonumentValley-compressed.obj");
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/defaultShadowMap.vs", "assets/shaders/blinnphongShadowMap.fs");
     colorblind = std::make_unique<ew::Texture>("assets/textures/colorblind.png");
     ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
@@ -381,7 +381,14 @@ void Scene::Render(void)
 {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-    auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
+    glm::mat4 transMatrix = glm::translate(
+        glm::mat4( 1.0f ),
+        glm::vec3( 0.0f, 0.0f, 0.0f )
+        );
+
+    auto scale_matrix = glm::scale(transMatrix, glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
+
+    auto suzanne_matrix = glm::translate(scale_matrix, debug.suzannePos);
 
     const auto light_proj = glm::ortho(-10.0f, +10.0f, -10.0f, +10.0f, 0.1f, 100.0f);
     const auto light_view = glm::lookAt(light.position, glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
