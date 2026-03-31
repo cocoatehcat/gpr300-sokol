@@ -73,10 +73,48 @@ struct Framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
         // position attachment
+        glGenTextures(1, &position);
+        glBindTexture(GL_TEXTURE_2D, position);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, kFramebufferWidth, kFramebufferHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, position, 0);
+
         // normal attachment
+        glGenTextures(1, &normal);
+        glBindTexture(GL_TEXTURE_2D, normal);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, kFramebufferWidth, kFramebufferHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, normal, 0);
+
         // albedo attachment
-        // albedo attachment
+        glGenTextures(1, &albedo);
+        glBindTexture(GL_TEXTURE_2D, albedo);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, kFramebufferWidth, kFramebufferHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, albedo, 0);
+
+        // material attachment
+        glGenTextures(1, &material);
+        glBindTexture(GL_TEXTURE_2D, material);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, kFramebufferWidth, kFramebufferHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, material, 0);
+
         // depth attachment
+        glGenTextures(1, &depth);
+        glBindTexture(GL_TEXTURE_2D, depth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, kFramebufferWidth, kFramebufferHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depth, 0);
+
+        GLenum array[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+
+        glDrawBuffers(4, array);
 
         // check completeness
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
@@ -88,7 +126,7 @@ struct Framebuffer
     }
 } framebuffer;
 
-struct LighVolumebuffer
+struct LightVolumebuffer
 {
     GLuint fbo;
     GLuint color;
@@ -101,12 +139,25 @@ struct LighVolumebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
         // position attachment
+        glGenTextures(1, &color);
+        glBindTexture(GL_TEXTURE_2D, color);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, kFramebufferWidth, kFramebufferHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
+
         // depth attachment
+        glGenTextures(1, &depth);
+        glBindTexture(GL_TEXTURE_2D, depth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, kFramebufferWidth, kFramebufferHeight, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depth, 0);
 
         // check completeness
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         {
-            printf("Not so victorious\n");
+            printf("Not so victorious but light\n");
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -130,13 +181,13 @@ struct
 
 Scene::Scene()
 {
-    suzanne = std::make_unique<ew::Model>("assets/suzanne.obj");
+    suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
     geometry = std::make_unique<ew::Shader>("assets/shaders/deferred/geometry.vs", "assets/shaders/deferred/geometry.fs");
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/deferred/blinnphong.vs", "assets/shaders/deferred/blinnphong.fs");
     noprocess = std::make_unique<ew::Shader>("assets/shaders/deferred/default.vs", "assets/shaders/deferred/default.fs");
     lightsphere = std::make_unique<ew::Shader>("assets/shaders/deferred/light.vs", "assets/shaders/deferred/light.fs");
     
-    texture = std::make_unique<ew::Texture>("assets/brick_color.jpg");
+    texture = std::make_unique<ew::Texture>("assets/textures/leaves2.jpeg");
 
     sphere.load(ew::createSphere(1.0f, 8));
 
@@ -195,19 +246,121 @@ void Scene::Render(void)
     // render gbuffer
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.fbo);
     {
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        geometry->use();
+
+        geometry->setMat4("view_proj", view_proj);
+
+        geometry->setFloat("material.ambient", material.ambient);
+        geometry->setFloat("material.diffuse", material.diffuse);
+        geometry->setFloat("material.specular", material.specular);
+        geometry->setFloat("material.shininess", material.shininess);
+
+        for (auto i = 0; i < model_instances.size(); i++) {
+            geometry->setMat4("model", model_instances[i]);
+                // Let's go Suzanne!
+            suzanne->draw();
+        }
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // render volume lights
     glBindFramebuffer(GL_FRAMEBUFFER, lightvolumebuffer.fbo);
     {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
+        glBlendEquation(GL_FUNC_ADD);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // color attachments
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.position);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.normal);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.albedo);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.material);
+
+        blinnphong->use();
+
+        // light geometry
+        blinnphong->setMat4("view_proj", view_proj);
+        blinnphong->setVec3("camera_position", camera.position);
+
+        // geometry buffers
+        blinnphong->setInt("g_position", 0);
+        blinnphong->setInt("g_normal", 1);
+        blinnphong->setInt("g_albedo", 2);
+        blinnphong->setInt("g_material", 3);
+
+        for (auto i = 0; i < model_instances.size(); i++) {
+            auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[i].position);
+            blinnphong->setMat4("model", sphereMatrix);
+            blinnphong->setVec3("light.position", light_instances[i].position);
+            blinnphong->setVec3("light.color", light_instances[i].color);
+
+            // Let's go lights!
+            sphere.draw();
+        }
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     { // render fullscreen quad
+        noprocess->use();
+        noprocess->setInt("screen", 0);
+
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glBindVertexArray(fullscreen_quad.vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, framebuffer.position);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
     { // render light sources
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer.fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        lightsphere->use();
+        lightsphere->setMat4("view_proj", view_proj);
+
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        auto i = 0;
+        for (auto x = -debug.width; x <= debug.width; x++) {
+            for (auto y = -debug.width; y <= debug.width; y++, i++) {
+                auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[i].position);
+                lightsphere->setMat4("model", sphereMatrix);
+                lightsphere->setVec3("color", light_instances[i].color);
+
+                // Let's go lights!
+                sphere.draw(ew::DrawMode::LINES);
+            }
+        }
     }
 }
 

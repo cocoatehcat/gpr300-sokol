@@ -1,9 +1,10 @@
-#version 510
+#version 410
 
 // attributes
 layout(location = 0) in vec2 in_position;
 layout(location = 1) in vec2 in_texcoord;
 
+// varyings
 out vec2 vs_texcoord;
 
 void main()
