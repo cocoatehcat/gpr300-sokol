@@ -190,6 +190,7 @@ Scene::Scene()
     texture = std::make_unique<ew::Texture>("assets/textures/leaves2.jpeg");
 
     sphere.load(ew::createSphere(1.0f, 8));
+    plane.load(ew::createPlane(100.0, 100.0, 10));
 
     ambient = {
         .intensity = 1.0f,
@@ -268,6 +269,11 @@ void Scene::Render(void)
                 // Let's go Suzanne!
             suzanne->draw();
         }
+
+        // Plane
+        const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
+        geometry->setMat4("model", plane_matrix);
+        plane.draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -351,14 +357,16 @@ void Scene::Render(void)
         glCullFace(GL_BACK);
 
         auto i = 0;
-        for (auto x = -debug.width; x <= debug.width; x++) {
-            for (auto y = -debug.width; y <= debug.width; y++, i++) {
-                auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[i].position);
-                lightsphere->setMat4("model", sphereMatrix);
-                lightsphere->setVec3("color", light_instances[i].color);
-
-                // Let's go lights!
-                sphere.draw(ew::DrawMode::LINES);
+        if (debug.draw_light_volume) {
+            for (auto x = -debug.width; x <= debug.width; x++) {
+                for (auto y = -debug.width; y <= debug.width; y++, i++) {
+                    auto sphereMatrix = glm::translate(glm::mat4(1.0f), light_instances[i].position);
+                    lightsphere->setMat4("model", sphereMatrix);
+                    lightsphere->setVec3("color", light_instances[i].color);
+    
+                    // Let's go lights!
+                    sphere.draw(ew::DrawMode::LINES);
+                }
             }
         }
     }
@@ -373,7 +381,7 @@ void Scene::Debug(void)
     ImGui::Checkbox("Paused", &time.paused);
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
 
-    if (ImGui::SliderInt("Width", &debug.width, 1, 100))
+    if (ImGui::SliderInt("Lights Width", &debug.width, 1, 100))
     {
         InitializeInstanceData();
     }
@@ -392,7 +400,7 @@ void Scene::Debug(void)
         ImGui::SliderFloat("Shininess", &material.shininess, 0.0f, 1.0f);
     }
 
-    if (ImGui::CollapsingHeader("Geometry Buffer"))
+    if (ImGui::CollapsingHeader("Geometry Buffers"))
     {
         ImVec2 uv_min(0.0f, 1.0f);
         ImVec2 uv_max(1.0f, 0.0f);
