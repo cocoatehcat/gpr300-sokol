@@ -17,5 +17,7 @@ out vec4 FragLighting;
 
 void main() 
 {
+    //vec3 albedo = texture(g_albedo, UV).xyz;
+
     FragLighting = vec4(light.color, 1.0);
 }
