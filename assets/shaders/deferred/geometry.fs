@@ -19,12 +19,13 @@ in vec3 vs_normal;
 in vec2 vs_texcoord;
 
 uniform Material material;
+uniform sampler2D tex;
 
 void main()
 {
     vec3 object_color = vs_normal.rgb * 0.5 + 0.5;
     frag_position = vec4(vs_position.xyz, 1.0);
     frag_normal = vec4(vs_normal.xyz, 1.0);
-    frag_albedo = vec4(object_color, 1.0);
+    frag_albedo = vec4(texture(tex, vs_texcoord).rgb, 1.0);
     frag_material = vec4(material.ambient, material.diffuse, material.specular, material.shininess);
 }

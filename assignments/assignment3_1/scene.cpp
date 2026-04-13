@@ -255,6 +255,9 @@ void Scene::Render(void)
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture->getID());
+
         geometry->use();
 
         geometry->setMat4("view_proj", view_proj);
@@ -263,6 +266,7 @@ void Scene::Render(void)
         geometry->setFloat("material.diffuse", material.diffuse);
         geometry->setFloat("material.specular", material.specular);
         geometry->setFloat("material.shininess", material.shininess);
+        geometry->setInt("text", 0); // setting texture
 
         for (auto i = 0; i < model_instances.size(); i++) {
             geometry->setMat4("model", model_instances[i]);
