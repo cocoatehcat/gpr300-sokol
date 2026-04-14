@@ -9,6 +9,9 @@ layout(location = 2) in vec2 in_texcoord;
 uniform mat4 view_proj;
 uniform mat4 model;
 
+// varyings
+out vec2 vs_texcoord;
+
 void main()
 {
     vec4 world_position = model * vec4(in_position, 1.0);
