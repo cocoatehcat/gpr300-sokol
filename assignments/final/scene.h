@@ -25,6 +25,7 @@ class Scene final : public batteries::Scene
 
   private:
     std::unique_ptr<ew::Model> suzanne;
+    std::unique_ptr<ew::Model> monument;
     std::unique_ptr<ew::Shader> blinnphong;
 
     std::unique_ptr<ew::Shader> depth;
@@ -37,6 +38,7 @@ class Scene final : public batteries::Scene
     std::unique_ptr<ew::Texture> colorblind;
     std::unique_ptr<ew::Texture> ornament;
     std::unique_ptr<ew::Texture> normalMap;
+    std::unique_ptr<ew::Texture> toonSh;
 
     batteries::light_t light;
     batteries::material_t material;

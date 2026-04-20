@@ -21,6 +21,9 @@ struct {
 
     glm::vec3 suzannePos = glm::vec3(1.0);
 
+    glm::vec3 palette1 = glm::vec3(1.0);
+    glm::vec3 palette2 = {0.3, 0.3, 0.3};
+
 } debug;
 
 struct {
@@ -328,11 +331,14 @@ void Scene::assignEffect(ew::Shader* shader) {
 
 Scene::Scene()
 {
-    suzanne = std::make_unique<ew::Model>("assets/models/MonumentValley-compressed.obj");
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/defaultShadowMap.vs", "assets/shaders/blinnphongShadowMap.fs");
+    suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
+    monument = std::make_unique<ew::Model>("assets/models/MonumentValley-compressed.obj");
+    blinnphong = std::make_unique<ew::Shader>("assets/shaders/cocoa/ambient.vs", "assets/shaders/cocoa/ambient.fs");
     colorblind = std::make_unique<ew::Texture>("assets/textures/colorblind.png");
     ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
     normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
+
+    toonSh = std::make_unique<ew::Texture>("assets/textures/ZAtoon.png");
 
     depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
@@ -386,9 +392,8 @@ void Scene::Render(void)
         glm::vec3( 0.0f, 0.0f, 0.0f )
         );
 
-    auto scale_matrix = glm::scale(transMatrix, glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
-
-    auto suzanne_matrix = glm::translate(scale_matrix, debug.suzannePos);
+    auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
+    auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
 
     const auto light_proj = glm::ortho(-10.0f, +10.0f, -10.0f, +10.0f, 0.1f, 100.0f);
     const auto light_view = glm::lookAt(light.position, glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
@@ -417,6 +422,9 @@ void Scene::Render(void)
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, shadow_depth);
 
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, toonSh->getID());
+
         blinnphong->use();
 
         // scene matrices
@@ -431,7 +439,7 @@ void Scene::Render(void)
         blinnphong->setVec3("light.color", light.color);
         blinnphong->setFloat("alpha", debug.alpha);
         blinnphong->setVec3("ambientColor", debug.ambient);
-        blinnphong->setFloat("biasMax", debug.biasMax);
+        //blinnphong->setFloat("biasMax", debug.biasMax);
 
         // Updating uniforms for lighting
         auto material = matList[debug.selectedIndex].material;
@@ -440,17 +448,25 @@ void Scene::Render(void)
         blinnphong->setVec3("material.specular", material.specular);
         blinnphong->setFloat("material.shininess", material.shininess);
 
+        blinnphong->setVec3("pal.color1", debug.palette1);
+        blinnphong->setVec3("pal.color2", debug.palette2);
+
         // Texture test
         blinnphong->setInt("mainTexture", debug.textureChoice);
-        blinnphong->setInt("shadowMap", 3);
+        //blinnphong->setInt("shadowMap", 3);
+        blinnphong->setInt("toonShader", 4);
 
         // draw suzanne
         suzanne->draw();
 
+        auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
+        blinnphong->setMat4("model", scale_matrix);
+        monument->draw();
+
         // Move plane
-        const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
-        blinnphong->setMat4("model", plane_matrix);
-        plane.draw();
+        // const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
+        // blinnphong->setMat4("model", plane_matrix);
+        //plane.draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -515,10 +531,13 @@ void Scene::Debug(void)
     ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
 
     /* build debug ui here */
-    ImGui::SeparatorText("Material/Ambient");
+    ImGui::SeparatorText("Ambient");
     ImGui::SliderInt("Texture Choice", &debug.textureChoice, 0, 1);
     ImGui::SliderFloat("Intensity", &debug.alpha, 0.0f, 1.0f);
     ImGui::ColorEdit3("Color", &light.color[0]);
+
+    ImGui::ColorEdit3("Palette 1", &debug.palette1[0]);
+    ImGui::ColorEdit3("Palette 2", &debug.palette2[0]);
 
     ImGui::SeparatorText("Material");
     if (ImGui::BeginCombo("Presets", matList[debug.selectedIndex].name.c_str())) {
@@ -577,7 +596,7 @@ void Scene::Debug(void)
             ImGui::SliderFloat("Wiggle", &ppDebug.watercolorStrength, 0.0f, 60.0f);
         }
 
-        ImGui::SliderFloat("Bias", &debug.biasMax, 0.0001f, 0.07f);
+        //ImGui::SliderFloat("Bias", &debug.biasMax, 0.0001f, 0.07f);
 
         if (ImGui::CollapsingHeader("Framebuffer Images")) {
             ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
