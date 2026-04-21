@@ -338,7 +338,7 @@ Scene::Scene()
     ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
     normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
 
-    toonSh = std::make_unique<ew::Texture>("assets/textures/ZAtoon.png");
+    toonSh = std::make_unique<ew::Texture>("assets/textures/ZA3.png");
 
     depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
@@ -437,23 +437,11 @@ void Scene::Render(void)
         blinnphong->setVec3("camera", camera.position);
         blinnphong->setVec3("light.position", light.position);
         blinnphong->setVec3("light.color", light.color);
-        blinnphong->setFloat("alpha", debug.alpha);
         blinnphong->setVec3("ambientColor", debug.ambient);
-        //blinnphong->setFloat("biasMax", debug.biasMax);
 
-        // Updating uniforms for lighting
-        auto material = matList[debug.selectedIndex].material;
-        blinnphong->setVec3("material.ambient", material.ambient);
-        blinnphong->setVec3("material.diffuse", material.diffuse);
-        blinnphong->setVec3("material.specular", material.specular);
-        blinnphong->setFloat("material.shininess", material.shininess);
+        blinnphong->setVec3("pal.lit", debug.palette1);
+        blinnphong->setVec3("pal.unlit", debug.palette2);
 
-        blinnphong->setVec3("pal.color1", debug.palette1);
-        blinnphong->setVec3("pal.color2", debug.palette2);
-
-        // Texture test
-        blinnphong->setInt("mainTexture", debug.textureChoice);
-        //blinnphong->setInt("shadowMap", 3);
         blinnphong->setInt("toonShader", 4);
 
         // draw suzanne
@@ -491,7 +479,6 @@ void Scene::Render(void)
         suzanne->draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
 
     assignEffect(postProcessingEffects[debug.indexEffect].get());
 }
@@ -538,70 +525,10 @@ void Scene::Debug(void)
 
     ImGui::ColorEdit3("Palette 1", &debug.palette1[0]);
     ImGui::ColorEdit3("Palette 2", &debug.palette2[0]);
-
-    ImGui::SeparatorText("Material");
-    if (ImGui::BeginCombo("Presets", matList[debug.selectedIndex].name.c_str())) {
-        for (int i = 0; i < matList.size(); i++) {
-            const bool isSelected = (matList[debug.selectedIndex].name == matList[i].name);
-            if (ImGui::Selectable(matList[i].name.c_str(), isSelected)) {
-                debug.selectedIndex = i;
-            }
-
-            // Set the initial focus when opening the combo
-            // (scrolling + keyboard navigation focus)
-            if (isSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-
-        }
-        ImGui::EndCombo();
-    }
-    auto material = matList[debug.selectedIndex].material; // Updating the values
-    if (ImGui::CollapsingHeader("Material Details")) {
-        ImGui::SliderFloat3("Ambient", &material.ambient[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Diffuse", &material.diffuse[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Specular", &material.specular[0], 0.0f, 1.0f);
-        ImGui::SliderFloat("Shininess", &material.shininess, 2.0f, 128.0f);
-    }
-
-    ImGui::SeparatorText("Post Processing Effects");
-    if (ImGui::BeginCombo("Effect", processingNames[debug.indexEffect].c_str())) {
-        for (int i = 0; i < processingNames.size(); i++) {
-            const bool isSelected = (processingNames[debug.indexEffect] == processingNames[i]);
-            if (ImGui::Selectable(processingNames[i].c_str(), isSelected)) {
-                debug.indexEffect = i;
-            }
-
-            if (isSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-
-        }
-        ImGui::EndCombo();
-    }
-    { // Effects Debug
-        if (debug.indexEffect == BLUR) {
-            ImGui::SliderFloat("Kernel Strength", &ppDebug.kernelStrength, 0.0f, 300.0f);
-        }
-        if (debug.indexEffect == GAMMA) {
-            ImGui::SliderFloat("Gamma", &ppDebug.gamma, 0.0f, 10.0f);
-        }
-        if (debug.indexEffect == CHROMATIC) {
-            ImGui::SliderFloat("Distortion", &ppDebug.distortion, 0.0f, 1.0f);
-        }
-        if (debug.indexEffect == FILM) {
-            ImGui::SliderFloat("Strength", &ppDebug.filmStrength, 0.0f, 1.0f);
-        }
-        if (debug.indexEffect == WATERCOLOR) {
-            ImGui::SliderFloat("Wiggle", &ppDebug.watercolorStrength, 0.0f, 60.0f);
-        }
-
-        //ImGui::SliderFloat("Bias", &debug.biasMax, 0.0001f, 0.07f);
-
-        if (ImGui::CollapsingHeader("Framebuffer Images")) {
-            ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::Image((void*)(intptr_t)shadow_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-        }
+    
+    if (ImGui::CollapsingHeader("Framebuffer Images")) {
+        ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)shadow_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     ImGui::End();

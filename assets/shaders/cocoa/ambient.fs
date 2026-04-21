@@ -10,8 +10,8 @@ struct Light {
 };
 
 struct Palette {
-    vec3 color1;
-    vec3 color2;
+    vec3 lit;
+    vec3 unlit;
 };
 
 struct Material {
@@ -30,37 +30,41 @@ in vec2 vs_texcoord;
 uniform vec3 camera;
 uniform Light light;
 uniform Palette pal;
-uniform Material material;
-uniform float alpha;
 uniform vec3 ambientColor;
-uniform sampler2D mainTexture;
 uniform sampler2D toonShader;  
 
-vec3 toonshading(vec3 normal, vec3 fragPos, Light light) {
+vec3 ambientLighting(vec3 normal, vec3 fragPos, Light light) {
+
     vec3 view_dir = normalize(camera - fragPos);
     vec3 light_dir = normalize(light.position - fragPos);
     vec3 reflect_dir = reflect(light_dir, vs_normal);
     vec3 half_dir = normalize(light_dir + view_dir);
 
-    float ndotl = (dot(normal, light_dir) + 1.0) * 0.5;
-    //float specular = pow(max(dot(normal, half_dir), 0.0), material.shininess);
+    //float ndotl = (dot(normal, light_dir) + 1.0) * 0.5;
+    float ndotl = max(dot(normal, light_dir), 0.0);
 
-    vec3 gradient = texture(toonShader, vec2(ndotl, ndotl)).rbg;
+    //vec3 gradient = texture(toonShader, vec2(ndotl, ndotl)).rgb;
+    //vec3 light_color = mix(pal.lit, pal.unlit, gradient);
+    vec3 light_color;
 
-    vec3 light_color = mix(pal.color1, pal.color2, gradient);
-
-    // Assign lighting based off material
-    //vec3 lightColor = (material.ambient + (material.diffuse * diffuse + material.specular * specular)) * light.color;
+    if (ndotl > 0.0) {
+        light_color = pal.lit;
+    }
+    else {
+        light_color = pal.unlit;
+    }
 
     return light_color;
 }
 
 void main()
 {
-    vec3 lighting = toonshading(vs_normal, vs_position, light);
-    //vec3 object_color = vs_normal * 0.5 + 0.5;
-    vec3 object_color = texture(mainTexture, vs_texcoord).rbg;
+    if (vs_normal.g > 0.9) {
+        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        return;
+    }
+    vec3 lighting = ambientLighting(vs_normal, vs_position, light);
     vec3 final_color = lighting;
     
-    FragColor = vec4(vs_normal, 1.0);
+    FragColor = vec4(final_color, 1.0);
 }
