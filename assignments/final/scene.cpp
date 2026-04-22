@@ -19,7 +19,7 @@ struct {
     int textureChoice = 0;
     float biasMax = 0.005f;
 
-    glm::vec3 suzannePos = glm::vec3(1.0);
+    glm::vec3 suzannePos = {1.0, 5.0, 1.0};
 
     glm::vec3 palette1 = glm::vec3(1.0);
     glm::vec3 palette2 = {0.3, 0.3, 0.3};
@@ -359,7 +359,7 @@ Scene::Scene()
     plane.load(ew::createPlane(100.0, 100.0, 10));
 
     light = {
-        .color = {1.0f, 0.0f, 1.0f},
+        .color = {1.0f, 1.0f, 1.0f},
         .position = {2.0f, 2.0f, 2.0f},  
     };
 
@@ -395,8 +395,11 @@ void Scene::Render(void)
     auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
     auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
 
+
+    glm::vec3 lower = {debug.suzannePos.x, debug.suzannePos.y - 5.0, debug.suzannePos.z};
+
     auto newSuzanneMatrix = 
-        glm::translate(glm::mat4(1.0f), debug.suzannePos)
+        glm::translate(glm::mat4(1.0f), lower)
         * glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 
     const auto light_proj = glm::ortho(-10.0f, +10.0f, -10.0f, +10.0f, 0.1f, 100.0f);
