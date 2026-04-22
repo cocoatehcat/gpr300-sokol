@@ -30,7 +30,7 @@ in vec2 vs_texcoord;
 uniform vec3 camera;
 uniform Light light;
 uniform Palette pal;
-uniform vec3 ambientColor;
+uniform vec3 floorColor;
 uniform sampler2D toonShader;  
 
 vec3 ambientLighting(vec3 normal, vec3 fragPos, Light light) {
@@ -59,8 +59,8 @@ vec3 ambientLighting(vec3 normal, vec3 fragPos, Light light) {
 
 void main()
 {
-    if (vs_normal.g > 0.93) {
-        FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    if (vs_normal.g > 9) {
+        FragColor = vec4(floorColor, 1.0);
         return;
     }
     vec3 lighting = ambientLighting(vs_normal, vs_position, light);

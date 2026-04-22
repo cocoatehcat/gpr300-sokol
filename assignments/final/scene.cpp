@@ -23,8 +23,22 @@ struct {
 
     glm::vec3 palette1 = glm::vec3(1.0);
     glm::vec3 palette2 = {0.3, 0.3, 0.3};
+    glm::vec3 floor = {1.0, 0.0, 0.0};
+    float lerpScale = 0.0f;
 
 } debug;
+
+struct {
+    glm::vec3 floor = {1.0, 0.0, 0.0};
+    glm::vec3 accent1 = {0.89, 0.89, 0.55};
+    glm::vec3 accent2 = {0.91, 0.65, 0.33};
+} dayPalette;
+
+struct {
+    glm::vec3 floor = {1.0, 0.0, 0.0};
+    glm::vec3 accent1 = {0.49, 0.29, 0.41};
+    glm::vec3 accent2 = {0.16, 0.16, 0.4};
+} nightPalette;
 
 struct {
     float kernelStrength = 10.0f;
@@ -444,7 +458,7 @@ void Scene::Render(void)
         blinnphong->setVec3("camera", camera.position);
         blinnphong->setVec3("light.position", light.position);
         blinnphong->setVec3("light.color", light.color);
-        blinnphong->setVec3("ambientColor", debug.ambient);
+        blinnphong->setVec3("floorColor", debug.floor);
 
         blinnphong->setVec3("pal.lit", debug.palette1);
         blinnphong->setVec3("pal.unlit", debug.palette2);
@@ -457,11 +471,6 @@ void Scene::Render(void)
         auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
         blinnphong->setMat4("model", newSuzanneMatrix);
         monument->draw();
-
-        // Move plane
-        // const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
-        // blinnphong->setMat4("model", plane_matrix);
-        //plane.draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -521,17 +530,33 @@ void Scene::Debug(void)
 
     ImGui::Begin("Controls", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-    ImGui::Checkbox("Paused", &time.paused);
-    ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
+    //ImGui::Checkbox("Paused", &time.paused);
+    //ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
 
     /* build debug ui here */
     ImGui::SeparatorText("Ambient");
-    ImGui::SliderInt("Texture Choice", &debug.textureChoice, 0, 1);
-    ImGui::SliderFloat("Intensity", &debug.alpha, 0.0f, 1.0f);
-    ImGui::ColorEdit3("Color", &light.color[0]);
+    ImGui::ColorEdit3("Floor Color", &debug.floor[0]);
 
-    ImGui::ColorEdit3("Palette 1", &debug.palette1[0]);
-    ImGui::ColorEdit3("Palette 2", &debug.palette2[0]);
+    ImGui::ColorEdit3("Accent 1", &debug.palette1[0]);
+    ImGui::ColorEdit3("Accent 2", &debug.palette2[0]);
+
+    ImGui::SeparatorText("Presets");
+    // Day Night
+    if (ImGui::Button("Day")) {
+        debug.palette1 = {0.89, 0.89, 0.55};
+        debug.palette2 = {0.91, 0.65, 0.33};
+    }
+    if (ImGui::Button("Night")) {
+        debug.palette1 = {0.49, 0.29, 0.41};
+        debug.palette2 = {0.16, 0.16, 0.4};
+    }
+
+    if (ImGui::SliderFloat("Day/Night", &debug.lerpScale, 0.0f, 1.0f)) {
+        debug.floor = (1 - debug.lerpScale) * dayPalette.floor + debug.lerpScale * nightPalette.floor;
+        debug.palette1 = (1 - debug.lerpScale) * dayPalette.accent1 + debug.lerpScale * nightPalette.accent1;
+        debug.palette2 = (1 - debug.lerpScale) * dayPalette.accent2 + debug.lerpScale * nightPalette.accent2;
+    }
+    // Anything else that's cute?
     
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
         ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
