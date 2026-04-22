@@ -54,4 +54,5 @@ class Scene final : public batteries::Scene
     void createFrameBuffer();
     void createDepthBuffer();
     void assignEffect(ew::Shader* shader);
+    glm::vec3 lerp(glm::vec3 a, glm::vec3 b, float t);
 };

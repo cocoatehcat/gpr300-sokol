@@ -24,7 +24,7 @@ struct {
     glm::vec3 palette1 = glm::vec3(1.0);
     glm::vec3 palette2 = {0.3, 0.3, 0.3};
     glm::vec3 floor = {1.0, 0.0, 0.0};
-    float lerpScale = 0.0f;
+    float lerpFactor = 0.0f;
 
 } debug;
 
@@ -39,6 +39,11 @@ struct {
     glm::vec3 accent1 = {0.49, 0.29, 0.41};
     glm::vec3 accent2 = {0.16, 0.16, 0.4};
 } nightPalette;
+
+glm::vec3 Scene::lerp(glm::vec3 a, glm::vec3 b, float t) {
+    //debug.floor = (1 - debug.lerpFactor) * dayPalette.floor + debug.lerpFactor * nightPalette.floor;
+    return (1 - t) * a + t * b;
+}
 
 struct {
     float kernelStrength = 10.0f;
@@ -551,10 +556,10 @@ void Scene::Debug(void)
         debug.palette2 = {0.16, 0.16, 0.4};
     }
 
-    if (ImGui::SliderFloat("Day/Night", &debug.lerpScale, 0.0f, 1.0f)) {
-        debug.floor = (1 - debug.lerpScale) * dayPalette.floor + debug.lerpScale * nightPalette.floor;
-        debug.palette1 = (1 - debug.lerpScale) * dayPalette.accent1 + debug.lerpScale * nightPalette.accent1;
-        debug.palette2 = (1 - debug.lerpScale) * dayPalette.accent2 + debug.lerpScale * nightPalette.accent2;
+    if (ImGui::SliderFloat("Day/Night", &debug.lerpFactor, 0.0f, 1.0f)) {
+        debug.floor = lerp(dayPalette.floor, nightPalette.floor, debug.lerpFactor);
+        debug.palette1 = lerp(dayPalette.accent1, nightPalette.accent2, debug.lerpFactor);
+        debug.palette2 = lerp(dayPalette.accent2, nightPalette.accent2, debug.lerpFactor);
     }
     // Anything else that's cute?
     
