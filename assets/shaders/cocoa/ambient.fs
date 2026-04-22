@@ -31,7 +31,6 @@ uniform vec3 camera;
 uniform Light light;
 uniform Palette pal;
 uniform vec3 floorColor;
-uniform sampler2D toonShader;  
 
 vec3 ambientLighting(vec3 normal, vec3 fragPos, Light light) {
 

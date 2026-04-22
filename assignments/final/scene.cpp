@@ -28,6 +28,7 @@ struct {
 
 } debug;
 
+// Palettes, think of a better way to do this
 struct {
     glm::vec3 floor = {1.0, 0.0, 0.0};
     glm::vec3 accent1 = {0.89, 0.89, 0.55};
@@ -40,86 +41,13 @@ struct {
     glm::vec3 accent2 = {0.16, 0.16, 0.4};
 } nightPalette;
 
+// To transition between values!
 glm::vec3 Scene::lerp(glm::vec3 a, glm::vec3 b, float t) {
     //debug.floor = (1 - debug.lerpFactor) * dayPalette.floor + debug.lerpFactor * nightPalette.floor;
     return (1 - t) * a + t * b;
 }
 
-struct {
-    float kernelStrength = 10.0f;
-    float gamma = 2.2f;
-    float distortion = 0.75f;
-    float filmStrength = 1.0f;
-    float watercolorStrength = 50.0f;
-
-} ppDebug;
-
 glm::mat4 identity(1.0f);
-
-typedef struct // making new type of struct instead of unordered map
-{
-    const std::string name;
-    const batteries::material_t material;
-} mats;
-
-static std::vector<mats> matList = {
-    {"default", {{0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}, 1.0f}},
-
-    // http://devernay.free.fr/cours/opengl/materials.html
-    // Since my file reader imploded we will just do this the hideous way
-    {"emerald", {{0.0215f, 0.1745f, 0.0215f}, {0.07568f, 0.61424f, 0.07568f}, {0.633f, 0.727811f, 0.633f}, 0.6f}},
-    {"jade", {{0.135f, 0.2225f, 0.1575f}, {0.54f, 0.89f, 0.63f}, {0.316228f, 0.316228f, 0.316228f}, 0.1}},
-    {"obsidian", {{0.05375f, 0.05f, 0.06625f}, {0.18275f, 0.17f, 0.22525f}, {0.332741f, 0.328634f, 0.346435f}, 0.3f}},
-    {"pearl", {{0.25f, 0.20725f, 0.20725f}, {1.0f, 0.829f, 0.829f}, {0.296648f, 0.296648f, 0.296648f}, 0.088f}},
-    {"ruby", {{0.1745f, 0.01175f, 0.01175f}, {0.61424f, 0.04136f, 0.04136f}, {0.727811f, 0.626959f, 0.626959f}, 0.6f}},
-    {"turquoise", {{0.1f, 0.18725f, 0.1745f}, {0.396f, 0.74151f, 0.69102f}, {0.297254f, 0.30829f, 0.306678f}, 0.1f}},
-    {"brass", {{0.329412f, 0.223529f, 0.027451f}, {0.780392f, 0.568627f, 0.113725f}, {0.992157f, 0.941176f, 0.807843f}, 0.21794872f}},
-    {"bronze", {{0.2125f, 0.1275f, 0.054f}, {0.714f, 0.4284f, 0.18144f}, {0.393548f, 0.271906f, 0.166721f}, 0.2f}},
-    {"chrome", {{0.25f, 0.25f, 0.25f}, {0.4f, 0.4f, 0.4f}, {0.774597f, 0.774597f, 0.774597f}, 0.6f}},
-    {"copper", {{0.19125f, 0.0735f, 0.0225f}, {0.7038f, 0.27048f, 0.0828f}, {0.256777f, 0.137622f, 0.086014f}, 0.1f}},
-    {"gold", {{0.24725f, 0.1995f, 0.0745f}, {0.75164f, 0.60648f, 0.22648f}, {0.628281f, 0.555802f, 0.366065f}, 0.4f}},
-    {"silver", {{0.19225f, 0.19225f, 0.19225f}, {0.50754f, 0.50754f, 0.50754f}, {0.508273f, 0.508273f, 0.508273f}, 0.4f}},
-    {"black plastic", {{0.0f, 0.0f, 0.0f}, {0.01f, 0.01f, 0.01f}, {0.50f, 0.50f, 0.50f}, 0.25f}},
-    {"cyan plastic", {{0.0f, 0.1f, 0.06f}, {0.0f, 0.50980392f, 0.50980392f}, {0.50196078f, 0.50196078f, 0.50196078f}, 0.25f}},
-    {"green plastic", {{0.0f, 0.0f, 0.0f}, {0.1f, 0.35f, 0.1f}, {0.45f, 0.55f, 0.45f}, 0.25f}},
-    {"red plastic", {{0.0f, 0.0f, 0.0f}, {0.5f, 0.0f, 0.0f}, {0.7f, 0.6f, 0.6f}, 0.25f}},
-    {"white plastic", {{0.0f, 0.0f, 0.0f}, {0.55f, 0.55f, 0.55f}, {0.70f, 0.70f, 0.70f}, 0.25f}},
-    {"yellow plastic", {{0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.0f}, {0.60f, 0.60f, 0.50f}, 0.25f}},
-    {"black rubber", {{0.02f, 0.02f, 0.02f}, {0.01f, 0.01f, 0.01f}, {0.4f, 0.4f, 0.4f}, 0.078125f}},
-    {"cyan rubber", {{0.0f, 0.05f, 0.05f}, {0.4f, 0.5f, 0.5f}, {0.04f, 0.7f, 0.7f}, 0.078125f}},
-    {"green rubber", {{0.0f, 0.05f, 0.0f}, {0.4f, 0.5f, 0.4f}, {0.04f, 0.7f, 0.04f}, 0.078125f}},
-    {"red rubber", {{0.05f, 0.0f, 0.0f}, {0.5f, 0.4f, 0.4f}, {0.7f, 0.04f, 0.04f}, 0.078125f}},
-    {"white rubber", {{0.05f, 0.05f, 0.05f}, {0.5f, 0.5f, 0.5f}, {0.7f, 0.7f, 0.7f}, 0.078125f}},
-    {"yellow rubber", {{0.05f, 0.05f, 0.0f}, {0.5f, 0.5f, 0.4f}, {0.7f, 0.7f, 0.04f}, 0.078125f}},
-};
-
-enum EFFECT_NAMES {
-    NONE = 0,
-    BLUR = 1,
-    GREYSCALE = 2,
-    EDGE = 3,
-    SHARPEN = 4,
-    GAMMA = 5,
-    CHROMATIC = 6,
-    FILM = 7,
-    RED_GREEN = 8,
-    BLUE_YELLOW = 9,
-    WATERCOLOR = 10,
-} effectType;
-
-static std::vector<std::string> processingNames = {
-    "None",
-    "Blur",
-    "Greyscale",
-    "Edge Detection",
-    "Sharpen",
-    "Gamma Correction",
-    "Chromatic Abberation",
-    "Film Grain",
-    "Red-Green Colorblindness",
-    "Blue-Yellow Colorblindness",
-    "Watercolor",
-};
 
 struct {
     GLuint fbo;
@@ -306,36 +234,6 @@ void Scene::assignEffect(ew::Shader* shader) {
     shader->use();
     shader->setInt("screen", 0);
 
-    switch(debug.indexEffect) {
-        case BLUR:
-            shader->setFloat("strength", ppDebug.kernelStrength);
-            break;
-        case GREYSCALE:
-            break;
-        case EDGE:
-            break;
-        case SHARPEN:
-            break;
-        case GAMMA:
-            shader->setFloat("gamma", ppDebug.gamma);
-            break;
-        case CHROMATIC:
-            shader->setFloat("distortion", ppDebug.distortion);
-            break;
-        case FILM:
-            shader->setFloat("strength", ppDebug.filmStrength);
-            break;
-        case RED_GREEN:
-            break;
-        case BLUE_YELLOW:
-            break;
-        case WATERCOLOR:
-            shader->setFloat("strength", ppDebug.watercolorStrength);
-            break;
-        default:
-            break;
-    }
-
     glDisable(GL_DEPTH_TEST);
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -353,29 +251,10 @@ Scene::Scene()
     suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
     monument = std::make_unique<ew::Model>("assets/models/MonumentValley-compressed.obj");
     blinnphong = std::make_unique<ew::Shader>("assets/shaders/cocoa/ambient.vs", "assets/shaders/cocoa/ambient.fs");
-    colorblind = std::make_unique<ew::Texture>("assets/textures/colorblind.png");
-    ornament = std::make_unique<ew::Texture>("assets/textures/CTO_Color.jpg");
-    normalMap = std::make_unique<ew::Texture>("assets/textures/CTO_NormalGL.jpg");
-
-    toonSh = std::make_unique<ew::Texture>("assets/textures/ZA3.png");
 
     depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
-    postProcess = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs");
-
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/fullscreen.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/blur.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/greyscale.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/edgeDetect.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/sharpen.fs"));  
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/gamma.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/chromatic.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/filmgrain.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/redgreen.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/tritanopia.fs"));
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/postprocessing/watercolor.fs"));
-
-    plane.load(ew::createPlane(100.0, 100.0, 10));
 
     light = {
         .color = {1.0f, 1.0f, 1.0f},
@@ -385,8 +264,7 @@ Scene::Scene()
     fullQuad.Init();
 
     createFrameBuffer();
-
-    createDepthBuffer();
+    //createDepthBuffer();
 }
 
 Scene::~Scene()
@@ -433,20 +311,8 @@ void Scene::Render(void)
         glCullFace(GL_BACK);
         glEnable(GL_DEPTH_TEST);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, colorblind->getID());
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, ornament->getID());
-
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, normalMap->getID());
-
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, shadow_depth);
-
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, toonSh->getID());
 
         blinnphong->use();
 
@@ -465,8 +331,6 @@ void Scene::Render(void)
         blinnphong->setVec3("pal.lit", debug.palette1);
         blinnphong->setVec3("pal.unlit", debug.palette2);
 
-        blinnphong->setInt("toonShader", 4);
-
         // draw suzanne
         // rip Suzanne </3
         //suzanne->draw();
@@ -474,28 +338,6 @@ void Scene::Render(void)
         auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
         blinnphong->setMat4("model", newSuzanneMatrix);
         monument->draw();
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    // Render Scene by Light
-    // AKA Shadows
-    glBindFramebuffer(GL_FRAMEBUFFER, shadow_fbo);
-    {
-        // local scope
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK); // Switch this and it causes an error?
-        glEnable(GL_DEPTH_TEST);
-
-        glViewport(0, 0, 800, 600);
-        glClear(GL_DEPTH_BUFFER_BIT);
-
-        depth->use();
-
-        // scene matrices
-        depth->setMat4("model", suzanne_matrix);
-        depth->setMat4("light_view_proj", light_view_proj);
-
-        suzanne->draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -561,10 +403,9 @@ void Scene::Debug(void)
     }
     // Anything else that's cute?
     
-    if (ImGui::CollapsingHeader("Framebuffer Images")) {
-        ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Image((void*)(intptr_t)shadow_depth, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-    }
+    // if (ImGui::CollapsingHeader("Framebuffer Images")) {
+    //     ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+    // }
 
     ImGui::End();
 }
