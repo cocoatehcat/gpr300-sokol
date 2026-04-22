@@ -19,7 +19,7 @@ struct {
     int textureChoice = 0;
     float biasMax = 0.005f;
 
-    glm::vec3 suzannePos = {1.0, 5.0, 1.0};
+    glm::vec3 suzannePos = glm::vec3(1.0);
 
     glm::vec3 palette1 = glm::vec3(1.0);
     glm::vec3 palette2 = {0.3, 0.3, 0.3};
@@ -379,7 +379,7 @@ Scene::Scene()
 
     light = {
         .color = {1.0f, 1.0f, 1.0f},
-        .position = {2.0f, 2.0f, 2.0f},  
+        .position = {5.0f, 5.0f, -5.0f},  
     };
 
     fullQuad.Init();
@@ -414,11 +414,8 @@ void Scene::Render(void)
     auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
     auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
 
-
-    glm::vec3 lower = {debug.suzannePos.x, debug.suzannePos.y - 5.0, debug.suzannePos.z};
-
     auto newSuzanneMatrix = 
-        glm::translate(glm::mat4(1.0f), lower)
+        glm::translate(glm::mat4(1.0f), debug.suzannePos)
         * glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 
     const auto light_proj = glm::ortho(-10.0f, +10.0f, -10.0f, +10.0f, 0.1f, 100.0f);
@@ -471,7 +468,8 @@ void Scene::Render(void)
         blinnphong->setInt("toonShader", 4);
 
         // draw suzanne
-        suzanne->draw();
+        // rip Suzanne </3
+        //suzanne->draw();
 
         auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
         blinnphong->setMat4("model", newSuzanneMatrix);
@@ -558,7 +556,7 @@ void Scene::Debug(void)
 
     if (ImGui::SliderFloat("Day/Night", &debug.lerpFactor, 0.0f, 1.0f)) {
         debug.floor = lerp(dayPalette.floor, nightPalette.floor, debug.lerpFactor);
-        debug.palette1 = lerp(dayPalette.accent1, nightPalette.accent2, debug.lerpFactor);
+        debug.palette1 = lerp(dayPalette.accent1, nightPalette.accent1, debug.lerpFactor);
         debug.palette2 = lerp(dayPalette.accent2, nightPalette.accent2, debug.lerpFactor);
     }
     // Anything else that's cute?
