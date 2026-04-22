@@ -395,6 +395,10 @@ void Scene::Render(void)
     auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
     auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
 
+    auto newSuzanneMatrix = 
+        glm::translate(glm::mat4(1.0f), debug.suzannePos)
+        * glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
+
     const auto light_proj = glm::ortho(-10.0f, +10.0f, -10.0f, +10.0f, 0.1f, 100.0f);
     const auto light_view = glm::lookAt(light.position, glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     const auto light_view_proj = light_proj * light_view;
@@ -448,7 +452,7 @@ void Scene::Render(void)
         suzanne->draw();
 
         auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
-        blinnphong->setMat4("model", scale_matrix);
+        blinnphong->setMat4("model", newSuzanneMatrix);
         monument->draw();
 
         // Move plane
