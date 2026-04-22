@@ -254,7 +254,7 @@ Scene::Scene()
 
     depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/fullscreen.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/cocoa/vignette.vs", "assets/shaders/cocoa/vignette.fs"));
 
     light = {
         .color = {1.0f, 1.0f, 1.0f},
@@ -403,9 +403,9 @@ void Scene::Debug(void)
     }
     // Anything else that's cute?
     
-    // if (ImGui::CollapsingHeader("Framebuffer Images")) {
-    //     ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-    // }
+    if (ImGui::CollapsingHeader("Framebuffer Images")) {
+        ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+    }
 
     ImGui::End();
 }
