@@ -10,6 +10,9 @@
 #include "batteries/opengl.h"
 #include "batteries/lights.h"
 
+constexpr int kFramebufferWidth = 800;
+constexpr int kFramebufferHeight = 600;
+
 struct {
     float alpha = 1.0f;
     glm::vec3 ambient = {0.3, 0.3, 0.3};
@@ -19,12 +22,14 @@ struct {
     int textureChoice = 0;
     float biasMax = 0.005f;
 
-    glm::vec3 suzannePos = glm::vec3(1.0);
+    glm::vec3 suzannePos = glm::vec3(0.0);
 
     glm::vec3 palette1 = glm::vec3(1.0);
     glm::vec3 palette2 = {0.3, 0.3, 0.3};
     glm::vec3 floor = {1.0, 0.0, 0.0};
     float lerpFactor = 0.0f;
+
+    glm::vec3 backgroundColor = {0.2, 0.3, 0.3};
 
 } debug;
 
@@ -43,7 +48,6 @@ struct {
 
 // To transition between values!
 glm::vec3 Scene::lerp(glm::vec3 a, glm::vec3 b, float t) {
-    //debug.floor = (1 - debug.lerpFactor) * dayPalette.floor + debug.lerpFactor * nightPalette.floor;
     return (1 - t) * a + t * b;
 }
 
@@ -73,8 +77,6 @@ struct {
             glDrawBuffers(0, nullptr);
             glReadBuffer(GL_NONE);
         }
-        // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
-        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, shadow_depth);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
             printf("It's not complete for depth :(\n");
@@ -106,8 +108,6 @@ void Scene::createDepthBuffer() {
         glDrawBuffers(0, nullptr);
         glReadBuffer(GL_NONE);
     }
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
-    //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, shadow_depth);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
         printf("It's not complete for depth :(\n");
@@ -147,7 +147,6 @@ struct Framebuffer {
             // clean up
             glBindTexture(GL_TEXTURE_2D, 0);
         }
-        // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
             printf("It's not complete :(\n");
@@ -182,7 +181,6 @@ void Scene::createFrameBuffer() {
         // clean up
         glBindTexture(GL_TEXTURE_2D, 0);
     }
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
         printf("It's not complete :(\n");
@@ -193,7 +191,6 @@ void Scene::createFrameBuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
     
-
 struct fullscreenQuad
 {
     GLuint vao;
@@ -231,19 +228,20 @@ struct fullscreenQuad
 } fullQuad;
 
 void Scene::assignEffect(ew::Shader* shader) {
-    shader->use();
-    shader->setInt("screen", 0);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glDisable(GL_DEPTH_TEST);
 
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    //glClearColor(0.2f, 0.3f, 0.3f, 1.0f); Does nothing
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // draw fullscreen
+    shader->use();
+    shader->setVec3("backcolor", debug.backgroundColor);
+
+    // no fullscreen
     glBindVertexArray(fullQuad.vao);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, fbo_texture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    
 }
 
 Scene::Scene()
@@ -264,7 +262,6 @@ Scene::Scene()
     fullQuad.Init();
 
     createFrameBuffer();
-    //createDepthBuffer();
 }
 
 Scene::~Scene()
@@ -282,16 +279,10 @@ void Scene::Update(float dt)
 
 void Scene::Render(void)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    // Vignette
+    assignEffect(postProcessingEffects[debug.indexEffect].get());
 
-    glm::mat4 transMatrix = glm::translate(
-        glm::mat4( 1.0f ),
-        glm::vec3( 0.0f, 0.0f, 0.0f )
-        );
-
-    auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
-    auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
-
+    // Actual Beginning of Pipeline
     auto newSuzanneMatrix = 
         glm::translate(glm::mat4(1.0f), debug.suzannePos)
         * glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
@@ -301,47 +292,55 @@ void Scene::Render(void)
     const auto light_view_proj = light_proj * light_view;
 
     // Suzanne Pipeline
-    {
-        const auto view_proj = camera.Projection() * camera.View();
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    const auto view_proj = camera.Projection() * camera.View();
 
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        glEnable(GL_DEPTH_TEST);
+    //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, shadow_depth);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glEnable(GL_DEPTH_TEST);
 
-        blinnphong->use();
+    // See through vignette
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        // scene matrices
-        blinnphong->setMat4("model", suzanne_matrix);
-        blinnphong->setMat4("view_proj", view_proj);
-        blinnphong->setVec3("camera_position", camera.position);
-        blinnphong->setMat4("light_view_proj", light_view_proj);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, shadow_depth);
 
-        // Set uniforms
-        blinnphong->setVec3("camera", camera.position);
-        blinnphong->setVec3("light.position", light.position);
-        blinnphong->setVec3("light.color", light.color);
-        blinnphong->setVec3("floorColor", debug.floor);
+    blinnphong->use();
 
-        blinnphong->setVec3("pal.lit", debug.palette1);
-        blinnphong->setVec3("pal.unlit", debug.palette2);
+    // scene matrices
+    //blinnphong->setMat4("model", suzanne_matrix);
+    blinnphong->setMat4("view_proj", view_proj);
+    blinnphong->setVec3("camera_position", camera.position);
+    blinnphong->setMat4("light_view_proj", light_view_proj);
 
-        // draw suzanne
-        // rip Suzanne </3
-        //suzanne->draw();
+    // Set uniforms
+    blinnphong->setVec3("camera", camera.position);
+    blinnphong->setVec3("light.position", light.position);
+    blinnphong->setVec3("light.color", light.color);
+    blinnphong->setVec3("floorColor", debug.floor);
 
-        auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
-        blinnphong->setMat4("model", newSuzanneMatrix);
-        monument->draw();
-    }
+    blinnphong->setVec3("pal.lit", debug.palette1);
+    blinnphong->setVec3("pal.unlit", debug.palette2);
+
+    // draw suzanne
+    // rip Suzanne </3
+    //suzanne->draw();
+
+    auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
+    blinnphong->setMat4("model", newSuzanneMatrix);
+    monument->draw();
+
+    // Cleaning up
+    glDisable(GL_BLEND);
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    assignEffect(postProcessingEffects[debug.indexEffect].get());
 }
 
 void Scene::Debug(void)
@@ -353,7 +352,7 @@ void Scene::Debug(void)
     ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
     ImGuizmo::SetRect(0, 0, ImGui::GetIO().DisplaySize.x, ImGui::GetIO().DisplaySize.y);
 
-    ImGuizmo::DrawGrid(&view[0][0], &proj[0][0], glm::value_ptr(identity), 10.0f);
+    //ImGuizmo::DrawGrid(&view[0][0], &proj[0][0], glm::value_ptr(identity), 10.0f);
 
     ImGuizmo::SetID(1);
     auto light_matrix = glm::translate(glm::mat4(1.0f), light.position);
@@ -380,8 +379,8 @@ void Scene::Debug(void)
 
     /* build debug ui here */
     ImGui::SeparatorText("Ambient");
+    ImGui::ColorEdit3("BackGround Color", &debug.backgroundColor[0]);
     ImGui::ColorEdit3("Floor Color", &debug.floor[0]);
-
     ImGui::ColorEdit3("Accent 1", &debug.palette1[0]);
     ImGui::ColorEdit3("Accent 2", &debug.palette2[0]);
 

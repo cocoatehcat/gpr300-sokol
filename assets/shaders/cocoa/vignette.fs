@@ -7,6 +7,7 @@ in vec2 vs_texcoord;
 
 // Uniforms
 //uniform sampler2D screen;  
+uniform vec3 backcolor;
 
 void main()
 {
@@ -17,7 +18,8 @@ void main()
     float vig = uv.x * uv.y * 16.0;
     vig = pow(vig, 0.25);
     //vec3 color = texture(screen, vs_texcoord).rgb;
-    vec3 color = vec3(1.0, 0.0, 0.0);
+
+    vec3 color = backcolor;
     color *= vec3(vig); // Changing this is cool, adding effect
     FragColor = vec4(color, 1.0);
 }
