@@ -35,16 +35,28 @@ struct {
 
 // Palettes, think of a better way to do this
 struct {
-    glm::vec3 floor = {1.0, 0.0, 0.0};
+    glm::vec3 floor = {0.53, 0.35, 0.14};
     glm::vec3 accent1 = {0.89, 0.89, 0.55};
     glm::vec3 accent2 = {0.91, 0.65, 0.33};
 } dayPalette;
 
 struct {
-    glm::vec3 floor = {1.0, 0.0, 0.0};
+    glm::vec3 floor = {0.82, 0.28, 0.28};
     glm::vec3 accent1 = {0.49, 0.29, 0.41};
     glm::vec3 accent2 = {0.16, 0.16, 0.4};
 } nightPalette;
+
+struct {
+    glm::vec3 floor = {0.68, 0.91, 0.96};
+    glm::vec3 accent1 = {0.28, 0.79, 0.89};
+    glm::vec3 accent2 = {0.01, 0.24, 0.54};
+} oceanPalette;
+
+struct {
+    glm::vec3 floor = {0.64, 0.69, 0.54};
+    glm::vec3 accent1 = {0.35, 0.51, 0.34};
+    glm::vec3 accent2 = {0.20, 0.31, 0.25};
+} earthPalette;
 
 // To transition between values!
 glm::vec3 Scene::lerp(glm::vec3 a, glm::vec3 b, float t) {
@@ -387,15 +399,30 @@ void Scene::Debug(void)
     ImGui::SeparatorText("Presets");
     // Day Night
     if (ImGui::Button("Day")) {
-        debug.palette1 = {0.89, 0.89, 0.55};
-        debug.palette2 = {0.91, 0.65, 0.33};
+        debug.floor = dayPalette.floor;
+        debug.palette1 = dayPalette.accent1;
+        debug.palette2 = dayPalette.accent2;
     }
+    ImGui::SameLine();
     if (ImGui::Button("Night")) {
-        debug.palette1 = {0.49, 0.29, 0.41};
-        debug.palette2 = {0.16, 0.16, 0.4};
+        debug.floor = nightPalette.floor;
+        debug.palette1 = nightPalette.accent1;
+        debug.palette2 = nightPalette.accent2;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Ocean")) {
+        debug.floor = oceanPalette.floor;
+        debug.palette1 = oceanPalette.accent1;
+        debug.palette2 = oceanPalette.accent2;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Earth")) {
+        debug.floor = earthPalette.floor;
+        debug.palette1 = earthPalette.accent1;
+        debug.palette2 = earthPalette.accent2;
     }
 
-    if (ImGui::SliderFloat("Day/Night", &debug.lerpFactor, 0.0f, 1.0f)) {
+    if (ImGui::SliderFloat("Day/Night Slider", &debug.lerpFactor, 0.0f, 1.0f)) {
         debug.floor = lerp(dayPalette.floor, nightPalette.floor, debug.lerpFactor);
         debug.palette1 = lerp(dayPalette.accent1, nightPalette.accent1, debug.lerpFactor);
         debug.palette2 = lerp(dayPalette.accent2, nightPalette.accent2, debug.lerpFactor);
