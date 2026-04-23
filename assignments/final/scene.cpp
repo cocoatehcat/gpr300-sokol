@@ -14,15 +14,9 @@ constexpr int kFramebufferWidth = 800;
 constexpr int kFramebufferHeight = 600;
 
 struct {
-    float alpha = 1.0f;
-    glm::vec3 ambient = {0.3, 0.3, 0.3};
-    int selectedIndex = 0;
     int indexEffect = 0;
-    float strength = 10.0f;
-    int textureChoice = 0;
-    float biasMax = 0.005f;
 
-    glm::vec3 suzannePos = glm::vec3(0.0);
+    glm::vec3 modelPos = glm::vec3(0.0);
 
     glm::vec3 palette1 = glm::vec3(1.0);
     glm::vec3 palette2 = {0.3, 0.3, 0.3};
@@ -33,7 +27,7 @@ struct {
 
 } debug;
 
-// Palettes, think of a better way to do this
+// Palettes, think of a better way to do this later
 struct {
     glm::vec3 floor = {0.53, 0.35, 0.14};
     glm::vec3 accent1 = {0.89, 0.89, 0.55};
@@ -130,46 +124,6 @@ void Scene::createDepthBuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-struct Framebuffer {
-
-    GLuint framefbo; // frame buffer object
-    GLuint framefbo_texture;
-    GLuint framefbo_depth;
-    
-    void init() {
-        glCreateFramebuffers(1, &framefbo);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, framefbo);
-
-        { // Create Texture
-            glGenTextures(1, &framefbo_texture);
-            glBindTexture(GL_TEXTURE_2D, framefbo_texture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framefbo_texture, 0);
-
-            glGenTextures(1, &framefbo_depth);
-            glBindTexture(GL_TEXTURE_2D, framefbo_depth);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, framefbo_depth, 0);
-
-            // clean up
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
-
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
-            printf("It's not complete :(\n");
-        }
-
-        // Has to unbind or else it will create a black screen
-        // All functions will be operating on Framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-} framebuff;
-
 void Scene::createFrameBuffer() {
     glCreateFramebuffers(1, &fbo);
 
@@ -239,6 +193,7 @@ struct fullscreenQuad
     }
 } fullQuad;
 
+// Assigns effect, currently is the Vignette
 void Scene::assignEffect(ew::Shader* shader) {
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -258,12 +213,12 @@ void Scene::assignEffect(ew::Shader* shader) {
 
 Scene::Scene()
 {
-    suzanne = std::make_unique<ew::Model>("assets/models/suzanne.obj");
     monument = std::make_unique<ew::Model>("assets/models/MonumentValley-compressed.obj");
-    blinnphong = std::make_unique<ew::Shader>("assets/shaders/cocoa/ambient.vs", "assets/shaders/cocoa/ambient.fs");
+    ambient = std::make_unique<ew::Shader>("assets/shaders/cocoa/ambient.vs", "assets/shaders/cocoa/ambient.fs");
 
     depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
+    // Vignette! This can be changed
     postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/cocoa/vignette.vs", "assets/shaders/cocoa/vignette.fs"));
 
     light = {
@@ -291,22 +246,23 @@ void Scene::Update(float dt)
 
 void Scene::Render(void)
 {
-    // Vignette
+    // Vignette, I'm too lazy to change from the previous system
+    // But let me know if it's a problem and I'll fix it
     assignEffect(postProcessingEffects[debug.indexEffect].get());
 
     // Actual Beginning of Pipeline
-    auto newSuzanneMatrix = 
-        glm::translate(glm::mat4(1.0f), debug.suzannePos)
+    auto newModelMatrix = 
+        glm::translate(glm::mat4(1.0f), debug.modelPos)
         * glm::scale(glm::mat4(1.0f), glm::vec3(0.01f));
 
     const auto light_proj = glm::ortho(-10.0f, +10.0f, -10.0f, +10.0f, 0.1f, 100.0f);
     const auto light_view = glm::lookAt(light.position, glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
     const auto light_view_proj = light_proj * light_view;
 
-    // Suzanne Pipeline
-
+    // Model Pipeline
     const auto view_proj = camera.Projection() * camera.View();
 
+    // Will Clear Vignette
     //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -321,34 +277,31 @@ void Scene::Render(void)
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, shadow_depth);
 
-    blinnphong->use();
+    ambient->use();
 
     // scene matrices
-    //blinnphong->setMat4("model", suzanne_matrix);
-    blinnphong->setMat4("view_proj", view_proj);
-    blinnphong->setVec3("camera_position", camera.position);
-    blinnphong->setMat4("light_view_proj", light_view_proj);
+    ambient->setMat4("view_proj", view_proj);
+    ambient->setVec3("camera_position", camera.position);
+    ambient->setMat4("light_view_proj", light_view_proj);
 
     // Set uniforms
-    blinnphong->setVec3("camera", camera.position);
-    blinnphong->setVec3("light.position", light.position);
-    blinnphong->setVec3("light.color", light.color);
-    blinnphong->setVec3("floorColor", debug.floor);
+    ambient->setVec3("camera", camera.position);
+    ambient->setVec3("light.position", light.position);
+    ambient->setVec3("light.color", light.color);
+    ambient->setVec3("floorColor", debug.floor);
 
-    blinnphong->setVec3("pal.lit", debug.palette1);
-    blinnphong->setVec3("pal.unlit", debug.palette2);
+    ambient->setVec3("pal.lit", debug.palette1);
+    ambient->setVec3("pal.unlit", debug.palette2);
 
-    // draw suzanne
-    // rip Suzanne </3
-    //suzanne->draw();
-
-    auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); // Get rid of this and replace with Suzanne!
-    blinnphong->setMat4("model", newSuzanneMatrix);
+    // Scaling down the giant model!
+    auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); 
+    ambient->setMat4("model", newModelMatrix);
     monument->draw();
 
-    // Cleaning up
+    // Cleaning up, just in case
     glDisable(GL_BLEND);
 
+    // Blitzing the vignette with the model
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
@@ -375,11 +328,11 @@ void Scene::Debug(void)
     }
 
     ImGuizmo::SetID(2);
-    auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.suzannePos);
+    auto suzanne_matrix = glm::translate(glm::mat4(1.0f), debug.modelPos);
     ImGuizmo::Manipulate(&view[0][0], &proj[0][0], ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::MODE::WORLD, glm::value_ptr(suzanne_matrix));
 
     if (ImGuizmo::IsUsing()){
-        debug.suzannePos = glm::vec3(suzanne_matrix[3]);
+        debug.modelPos = glm::vec3(suzanne_matrix[3]);
     }    
 
     cameracontroller.Debug();
