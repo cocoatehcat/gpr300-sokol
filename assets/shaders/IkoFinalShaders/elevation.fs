@@ -14,6 +14,6 @@ in vec2 vs_texcoord;
 
 void main()
 {
-    vec3 outputColor = vec3((vs_position.y * fog_range) + fog_height,0.0,0.0);
+    vec3 outputColor = vec3(0.0,(vs_position.y * fog_range) + fog_height,0.0);
     frag_position = vec4(outputColor, 1.0);
 }

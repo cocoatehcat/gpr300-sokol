@@ -346,6 +346,8 @@ void Scene::assignEffect(ew::Shader* shader) {
             shader->setFloat("strength", ppDebug.watercolorStrength);
             break;
         case MIST:
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, elevation_texture);
             shader->setInt("mist_effect", 1);
@@ -520,7 +522,7 @@ void Scene::Render(void)
 
         suzanne->draw();
         const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
-        blinnphong->setMat4("model", plane_matrix);
+        elevation->setMat4("model", plane_matrix);
         plane.draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
