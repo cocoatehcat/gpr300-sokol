@@ -25,18 +25,13 @@ class Scene final : public batteries::Scene
 
   private:
     std::unique_ptr<ew::Model> suzanne;
-    std::unique_ptr<ew::Shader> blinnphong;
+    std::unique_ptr<ew::Model> monument;
+    std::unique_ptr<ew::Shader> ambient;
 
     std::unique_ptr<ew::Shader> depth;
-    ew::Mesh plane;
 
     // Post process
-    std::unique_ptr<ew::Shader> postProcess;
     std::vector<std::unique_ptr<ew::Shader>> postProcessingEffects;
-
-    std::unique_ptr<ew::Texture> colorblind;
-    std::unique_ptr<ew::Texture> ornament;
-    std::unique_ptr<ew::Texture> normalMap;
 
     batteries::light_t light;
     batteries::material_t material;
@@ -52,4 +47,5 @@ class Scene final : public batteries::Scene
     void createFrameBuffer();
     void createDepthBuffer();
     void assignEffect(ew::Shader* shader);
+    glm::vec3 lerp(glm::vec3 a, glm::vec3 b, float t);
 };
