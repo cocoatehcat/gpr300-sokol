@@ -365,9 +365,9 @@ void Scene::assignEffect(ew::Shader* shader) {
     glBindVertexArray(fullQuad.vao);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fbo_texture);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, elevation_texture);
-    shader->setInt("mist_effect", 1);
+    //glActiveTexture(GL_TEXTURE1);
+    //glBindTexture(GL_TEXTURE_2D, elevation_texture);
+    //shader->setInt("mist_effect", 1);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 

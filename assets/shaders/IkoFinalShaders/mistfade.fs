@@ -15,5 +15,5 @@ void main()
     vec3 mistValue = texture(mist_effect, vs_texcoord.xy).xyz;
     vec3 color = texture(screen, vs_texcoord.xy).rgb;
     vec3 testColor = color * mistValue.y;
-    FragColor = vec4(mistValue,1.0f);
+    FragColor = vec4(color,mistValue.y);
 }
