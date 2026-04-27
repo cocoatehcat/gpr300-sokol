@@ -325,6 +325,12 @@ Scene::Scene()
     fullQuad.Init();
     framebuff.init();
 
+    //init reflection and refraction framebuffers and load water plane
+    reflection.Initialize();
+    refraction.Initialize();
+    waterBuffer.Initialize();
+    plane.load(ew::createPlane(200.0, 200.0, 20));
+
     // DONT USE MATTY THING
     //createFrameBuffer();
 }
@@ -493,6 +499,67 @@ void Scene::Render(void)
     glStencilFunc(GL_NOTEQUAL, 1, 0xFF); // Set stencil value to 1
     glStencilMask(0x00);
 
+    //draw to reflection and refraction
+    glEnable(GL_CLIP_DISTANCE0);
+
+    ReflectionPass(view_proj, monument.get(), glm::vec4(0, 1, 0, 0));
+    RefractionPass(view_proj, monument.get(), glm::vec4(0, -1, 0, 0));
+    
+    glDisable(GL_CLIP_DISTANCE0);
+
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    //Water time
+    //glBindFramebuffer(GL_FRAMEBUFFER, waterBuffer.fbo);
+
+    //bind textures
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, reflection.color0);
+
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, refraction.color0);
+
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture(GL_TEXTURE_2D, refraction.depth);
+
+    glActiveTexture(GL_TEXTURE7);
+    glBindTexture(GL_TEXTURE_2D, waveWarp->getID());
+
+    glActiveTexture(GL_TEXTURE8);
+    glBindTexture(GL_TEXTURE_2D, waveSpec->getID());
+
+    water->use();
+
+    water->setInt("reflection", 4);
+    water->setInt("refraction", 5);
+    water->setInt("depthTexture", 6);
+    water->setInt("waveWarp", 7);
+    water->setInt("waveSpec", 8);
+
+    water->setMat4("model", glm::mat4(1.0));
+    water->setMat4("view_proj", view_proj);
+    water->setFloat("time", (float)time.absolute);
+    water->setVec3("cameraPos", camera.position);
+        
+    water->setFloat("waveAmp", debug.waveAmplitude);
+    water->setFloat("waveLength", debug.waveLength);
+    water->setFloat("waveSpeed", debug.waveLength);
+    
+    water->setVec4("waterColor", debug.waterColor);
+    water->setFloat("waveTime", (float)time.absolute);
+    water->setVec2("nearFarPlanes", glm::vec2(0.0, 10.0));
+    water->setFloat("scale", debug.waveScale);
+    water->setFloat("specIntensity", debug.waveSpecIntensity);
+    water->setVec3("light.color", light.color);
+    water->setVec3("light.position", light.position);
+    
+    water->setFloat("minBlueness", debug.minBlue);
+    water->setFloat("maxBlueness", debug.maxBlue);
+    water->setFloat("murkyDepth", debug.murkyDepth);
+
+    plane.draw();
+
     // Cleaning up, just in case
     glDisable(GL_BLEND);
 
@@ -508,10 +575,10 @@ void Scene::Render(void)
     //glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, waterBuffer.fbo);
-    glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, waterBuffer.fbo);
+    //glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Scene::Debug(void)
@@ -615,10 +682,6 @@ void Scene::Debug(void)
     
         ImGui::Image(
             (void*)(intptr_t)refraction.color0,
-            ImVec2(400, 300),
-            ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Image(
-            (void*)(intptr_t)waterBuffer.fbo,
             ImVec2(400, 300),
             ImVec2(0, 1), ImVec2(1, 0));
     }
