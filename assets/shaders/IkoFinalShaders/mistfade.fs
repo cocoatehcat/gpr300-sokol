@@ -8,12 +8,14 @@ in vec2 vs_texcoord;
 // Uniforms
 uniform sampler2D screen;
 uniform sampler2D mist_effect;  
+uniform sampler2D background;
 
 void main()
 {
     vec2 UV = gl_FragCoord.xy / vec2(800,600);
     vec3 mistValue = texture(mist_effect, vs_texcoord.xy).xyz;
     vec3 color = texture(screen, vs_texcoord.xy).rgb;
+    vec3 backgroundColor = texture(background, vs_texcoord.xy).rgb;
     vec3 testColor = color * mistValue.y;
     FragColor = vec4(color,mistValue.y);
 }
