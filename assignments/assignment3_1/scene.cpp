@@ -266,7 +266,7 @@ void Scene::Render(void)
         geometry->setFloat("material.diffuse", material.diffuse);
         geometry->setFloat("material.specular", material.specular);
         geometry->setFloat("material.shininess", material.shininess);
-        geometry->setInt("text", 0); // setting texture
+        geometry->setInt("tex", 0); // setting texture
 
         for (auto i = 0; i < model_instances.size(); i++) {
             geometry->setMat4("model", model_instances[i]);
