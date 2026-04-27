@@ -13,6 +13,14 @@
 #include "ew/mesh.h"
 #include "ew/procGen.h"
 
+struct FrameBuffer{
+  GLuint fbo;
+  GLuint color0;
+  GLuint depth;
+
+  void Initialize();
+};
+
 class Scene final : public batteries::Scene
 {
   public:
@@ -24,11 +32,19 @@ class Scene final : public batteries::Scene
     void Debug(void);
 
   private:
+    void ReflectionPass(const glm::mat4x4 view_proj, ew::Model* model, glm::vec4 clipPlane);
+    void RefractionPass(const glm::mat4x4 view_proj, ew::Model* model, glm::vec4 clipPlane);
+
     std::unique_ptr<ew::Model> suzanne;
     std::unique_ptr<ew::Model> monument;
     std::unique_ptr<ew::Shader> ambient;
 
     std::unique_ptr<ew::Shader> depth;
+    
+    //water
+    std::unique_ptr<ew::Shader> water;
+    std::unique_ptr<ew::Texture> waveWarp;
+    std::unique_ptr<ew::Texture> waveSpec;
 
     // Post process
     std::vector<std::unique_ptr<ew::Shader>> postProcessingEffects;
@@ -43,6 +59,12 @@ class Scene final : public batteries::Scene
     // Depth
     GLuint shadow_fbo; // frame buffer object
     GLuint shadow_depth;
+
+    //water framebuffers
+    FrameBuffer reflection;
+    FrameBuffer refraction; 
+    FrameBuffer waterBuffer;
+    ew::Mesh plane;
 
     void createFrameBuffer();
     void createDepthBuffer();
