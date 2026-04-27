@@ -40,17 +40,16 @@ vec3 ambientLighting(vec3 normal, vec3 fragPos, Light light) {
     vec3 half_dir = normalize(light_dir + view_dir);
 
     float ndotl = (dot(light_dir, normal) + 1.0) * 0.5;
-    //float ndotl = max(dot(normal, light_dir), 0.0);
 
-    //vec3 gradient = texture(toonShader, vec2(ndotl, ndotl)).rgb;
-    //vec3 light_color = mix(pal.lit, pal.unlit, gradient);
+    vec3 diffuse = (ndotl * light.color) * 1.5; // Making this less intense
     
     vec3 light_color;
+    
     if (ndotl > 0.5) {
-        light_color = pal.lit;
+        light_color = pal.lit * diffuse;
     }
     else {
-        light_color = pal.unlit;
+        light_color = pal.unlit * diffuse;
     }
 
     return light_color;
@@ -58,11 +57,14 @@ vec3 ambientLighting(vec3 normal, vec3 fragPos, Light light) {
 
 void main()
 {
-    if (vs_normal.g > 9) {
+    vec3 realNormal = normalize(vs_normal);
+
+    if (realNormal.g > 0.9) {
         FragColor = vec4(floorColor, 1.0);
         return;
     }
-    vec3 lighting = ambientLighting(vs_normal, vs_position, light);
+
+    vec3 lighting = ambientLighting(realNormal, vs_position, light);
     vec3 final_color = lighting;
     
     FragColor = vec4(final_color, 1.0);

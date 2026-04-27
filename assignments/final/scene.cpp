@@ -223,7 +223,7 @@ Scene::Scene()
 
     light = {
         .color = {1.0f, 1.0f, 1.0f},
-        .position = {5.0f, 5.0f, -5.0f},  
+        .position = {5.0f, 5.0f, -8.0f},  
     };
 
     fullQuad.Init();
