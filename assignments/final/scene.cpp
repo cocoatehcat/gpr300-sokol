@@ -274,6 +274,7 @@ struct Framebuffer {
 } framebuff;
 
 Framebuffer isobuff;
+Framebuffer waterbuff;
     
 struct fullscreenQuad
 {
@@ -323,13 +324,18 @@ void Scene::assignEffect(ew::Shader* shader) {
 
     glDisable(GL_DEPTH_TEST);
 
-    //glClearColor(0.2f, 0.3f, 0.3f, 1.0f); Does nothing
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClearColor(debug.backgroundColor.x, debug.backgroundColor.y, debug.backgroundColor.z, 1.0f); //Does nothing
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     // no fullscreen
     glBindVertexArray(fullQuad.vao);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, isobuff.framefbo_texture);
+    if (waterToggle) {
+        glBindTexture(GL_TEXTURE_2D, framebuff.framefbo_texture);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_2D, isobuff.framefbo_texture);
+    }  
     glDrawArrays(GL_TRIANGLES, 0, 6);
     
 }
@@ -391,6 +397,7 @@ Scene::Scene()
     fullQuad.Init();
     framebuff.init();
     isobuff.init();
+    waterbuff.init();
 
     //createFrameBuffer();
     createHeightBuffer();
@@ -541,12 +548,6 @@ void Scene::Render(void)
         glEnable(GL_STENCIL_TEST); // Enable stencil
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); // Replace stencil value on pass
 
-        // See through vignette
-        // glEnable(GL_BLEND);
-        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        // glActiveTexture(GL_TEXTURE3);
-        // glBindTexture(GL_TEXTURE_2D, shadow_depth);
-
         ambient->use();
 
         // scene matrices
@@ -571,59 +572,58 @@ void Scene::Render(void)
         glStencilMask(0xFF); // writing to stencil
         monument->draw();
 
-
-        // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         //Water time
         //glBindFramebuffer(GL_FRAMEBUFFER, waterBuffer.fbo);
 
-        //bind textures
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, reflection.color0);
+        if (waterToggle)
+        {
+            //bind textures
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_2D, reflection.color0);
 
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, refraction.color0);
+            glActiveTexture(GL_TEXTURE5);
+            glBindTexture(GL_TEXTURE_2D, refraction.color0);
 
-        glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, refraction.depth);
+            glActiveTexture(GL_TEXTURE6);
+            glBindTexture(GL_TEXTURE_2D, refraction.depth);
 
-        glActiveTexture(GL_TEXTURE7);
-        glBindTexture(GL_TEXTURE_2D, waveWarp->getID());
+            glActiveTexture(GL_TEXTURE7);
+            glBindTexture(GL_TEXTURE_2D, waveWarp->getID());
 
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_2D, waveSpec->getID());
+            glActiveTexture(GL_TEXTURE8);
+            glBindTexture(GL_TEXTURE_2D, waveSpec->getID());
 
-        water->use();
+            water->use();
 
-        water->setInt("reflection", 4);
-        water->setInt("refraction", 5);
-        water->setInt("depthTexture", 6);
-        water->setInt("waveWarp", 7);
-        water->setInt("waveSpec", 8);
+            water->setInt("reflection", 4);
+            water->setInt("refraction", 5);
+            water->setInt("depthTexture", 6);
+            water->setInt("waveWarp", 7);
+            water->setInt("waveSpec", 8);
 
-        water->setMat4("model", glm::mat4(1.0));
-        water->setMat4("view_proj", view_proj);
-        water->setFloat("time", (float)time.absolute);
-        water->setVec3("cameraPos", camera.position);
+            water->setMat4("model", glm::mat4(1.0));
+            water->setMat4("view_proj", view_proj);
+            water->setFloat("time", (float)time.absolute);
+            water->setVec3("cameraPos", camera.position);
+                
+            water->setFloat("waveAmp", debug.waveAmplitude);
+            water->setFloat("waveLength", debug.waveLength);
+            water->setFloat("waveSpeed", debug.waveLength);
             
-        water->setFloat("waveAmp", debug.waveAmplitude);
-        water->setFloat("waveLength", debug.waveLength);
-        water->setFloat("waveSpeed", debug.waveLength);
-        
-        water->setVec4("waterColor", debug.waterColor);
-        water->setFloat("waveTime", (float)time.absolute);
-        water->setVec2("nearFarPlanes", glm::vec2(0.0, 10.0));
-        water->setFloat("scale", debug.waveScale);
-        water->setFloat("specIntensity", debug.waveSpecIntensity);
-        water->setVec3("light.color", light.color);
-        water->setVec3("light.position", light.position);
-        
-        water->setFloat("minBlueness", debug.minBlue);
-        water->setFloat("maxBlueness", debug.maxBlue);
-        water->setFloat("murkyDepth", debug.murkyDepth);
+            water->setVec4("waterColor", debug.waterColor);
+            water->setFloat("waveTime", (float)time.absolute);
+            water->setVec2("nearFarPlanes", glm::vec2(0.0, 10.0));
+            water->setFloat("scale", debug.waveScale);
+            water->setFloat("specIntensity", debug.waveSpecIntensity);
+            water->setVec3("light.color", light.color);
+            water->setVec3("light.position", light.position);
+            
+            water->setFloat("minBlueness", debug.minBlue);
+            water->setFloat("maxBlueness", debug.maxBlue);
+            water->setFloat("murkyDepth", debug.murkyDepth);
 
-        plane.draw();
+            plane.draw();
+        }
 
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF); // Set stencil value to 1
         glStencilMask(0x00);
@@ -633,90 +633,79 @@ void Scene::Render(void)
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, elevation_fbo);
+    if (!waterToggle)
     {
-        const auto view_proj = camera.Projection() * camera.View();
+        glBindFramebuffer(GL_FRAMEBUFFER, elevation_fbo);
+        {
+            const auto view_proj = camera.Projection() * camera.View();
 
-        glDisable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
+            glDisable(GL_BLEND);
+            glEnable(GL_DEPTH_TEST);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
 
-        glClearColor(0.0f,0.0f,0.0f,0.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            //glClearColor(0.0f,0.0f,0.0f,0.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        elevation->use();
+            elevation->use();
 
-        elevation->setMat4("model", newModelMatrix);
-        elevation->setMat4("view_proj", view_proj);
+            elevation->setMat4("model", newModelMatrix);
+            elevation->setMat4("view_proj", view_proj);
 
-        monument->draw();
-        //const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
-        //elevation->setMat4("model", plane_matrix);
-        //plane.draw();
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
-    glBindFramebuffer(GL_FRAMEBUFFER, elevation_texture);
-    {
-        const auto view_proj = camera.Projection() * camera.View();
-        // local scope
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        glEnable(GL_DEPTH_TEST);
-
-        elevation->use();
-
-        // scene matrices
-        elevation->setFloat("fog_range", debug.fogRange);
-        elevation->setFloat("fog_height", debug.fogHeight);
-        elevation->setMat4("model", newModelMatrix);
-        elevation->setMat4("view_proj", view_proj);
-
-        monument->draw();
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-
-    glBindFramebuffer(GL_FRAMEBUFFER, isobuff.framefbo);
-    {
-        glClearColor(debug.backgroundColor.x ,debug.backgroundColor.y, debug.backgroundColor.z, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
-    
+            monument->draw();
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, elevation_texture);
-        elevationFade->use();
-        elevationFade->setInt("screen", 0);
-        elevationFade->setInt("mist_effect", 1);
+        glBindFramebuffer(GL_FRAMEBUFFER, elevation_texture);
+        {
+            const auto view_proj = camera.Projection() * camera.View();
+            // local scope
+            //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        glBindVertexArray(fullQuad.vao);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, framebuff.framefbo_texture);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+            glEnable(GL_DEPTH_TEST);
+
+            elevation->use();
+
+            // scene matrices
+            elevation->setFloat("fog_range", debug.fogRange);
+            elevation->setFloat("fog_height", debug.fogHeight);
+            elevation->setMat4("model", newModelMatrix);
+            elevation->setMat4("view_proj", view_proj);
+
+            monument->draw();
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, isobuff.framefbo);
+        {
+            glClearColor(debug.backgroundColor.x ,debug.backgroundColor.y, debug.backgroundColor.z, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+        
+            
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, elevation_texture);
+            elevationFade->use();
+            elevationFade->setInt("screen", 0);
+            elevationFade->setInt("mist_effect", 1);
+
+            glBindVertexArray(fullQuad.vao);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, framebuff.framefbo_texture);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    
     // Vignette, I'm too lazy to change from the previous system
     // But let me know if it's a problem and I'll fix it
     assignEffect(postProcessingEffects[debug.indexEffect].get());
-
-    // Blitzing the vignette with the model
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    //glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    //glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, waterBuffer.fbo);
-    //glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Scene::Debug(void)
@@ -749,6 +738,10 @@ void Scene::Debug(void)
     cameracontroller.Debug();
 
     ImGui::Begin("Controls", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+    if (ImGui::Button("Toggle Water")) {
+        waterToggle = !waterToggle;
+    }
 
     //ImGui::Checkbox("Paused", &time.paused);
     //ImGui::SliderFloat("Time Factor", &time.factor, 0.0f, 10.0f);
@@ -797,18 +790,11 @@ void Scene::Debug(void)
         ImVec2 uv_min(0.0f, 1.0f);
         ImVec2 uv_max(1.0f, 0.0f);
 
-        debug.fogtoggle = true;
         ImGui::SliderFloat("Fog Height", &debug.fogHeight, -15.0f, 8.0f);
         ImGui::SliderFloat("Fog Fade Range", &debug.fogRange, 0.1f, 3.0f);
 
         ImGui::Text("Elevation:");
         ImGui::Image((ImTextureID)(intptr_t) elevation_texture, ImVec2(200, 150), uv_min, uv_max);
-
-        //ImGui::Text("Isolation:");
-        //ImGui::Image((ImTextureID)(intptr_t) isolation_texture, ImVec2(200, 150), uv_min, uv_max);
-    }
-    else{
-        debug.fogtoggle = false;
     }
     // Anything else that's cute?
 
@@ -831,7 +817,8 @@ void Scene::Debug(void)
         //ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
 
         ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
-
+        ImGui::Image((void*)(intptr_t)isobuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)waterbuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
         ImGui::Image(
             (void*)(intptr_t)reflection.color0,
             ImVec2(400, 300),
@@ -841,7 +828,6 @@ void Scene::Debug(void)
             (void*)(intptr_t)refraction.color0,
             ImVec2(400, 300),
             ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::Image((void*)(intptr_t)isobuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
     }
     
 

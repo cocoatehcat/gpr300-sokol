@@ -81,4 +81,6 @@ class Scene final : public batteries::Scene
     void createIsolationBuffer();
     void assignEffect(ew::Shader* shader);
     glm::vec3 lerp(glm::vec3 a, glm::vec3 b, float t);
+
+    bool waterToggle;
 };
