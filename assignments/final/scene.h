@@ -27,6 +27,8 @@ class Scene final : public batteries::Scene
     std::unique_ptr<ew::Model> suzanne;
     std::unique_ptr<ew::Model> monument;
     std::unique_ptr<ew::Shader> ambient;
+    std::unique_ptr<ew::Shader> elevation;
+    std::unique_ptr<ew::Shader> elevationFade;
 
     std::unique_ptr<ew::Shader> depth;
 
@@ -40,12 +42,21 @@ class Scene final : public batteries::Scene
     GLuint fbo_texture;
     GLuint fbo_depth;
 
+    GLuint elevation_fbo;
+    GLuint elevation_texture;
+    GLuint elevation_depth;
+    GLuint isolation_fbo;
+    GLuint isolation_texture;
+    GLuint isolation_depth;
+
     // Depth
     GLuint shadow_fbo; // frame buffer object
     GLuint shadow_depth;
 
     void createFrameBuffer();
+    void createHeightBuffer();
     void createDepthBuffer();
+    void createIsolationBuffer();
     void assignEffect(ew::Shader* shader);
     glm::vec3 lerp(glm::vec3 a, glm::vec3 b, float t);
 };

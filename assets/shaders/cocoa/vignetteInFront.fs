@@ -24,8 +24,11 @@ void main()
 
     // Adding effect to background
     vec3 sceneColor = texture(sceneTexture, vs_texcoord).rgb;
+
+    // Getting stencil from depth buffer
     float stencilValue = texture(stencilTexture, vs_texcoord).r;
 
+    // Monument is here, no effect
     if (stencilValue > 0.5) {
         FragColor = vec4(sceneColor, 1.0);
         return;

@@ -25,6 +25,13 @@ struct {
 
     glm::vec3 backgroundColor = {0.2, 0.3, 0.3};
 
+    float fogHeight = 1.0;
+    float fogRange = 0.5;
+    bool fogtoggle = false;
+    float fogR = 0.5;
+    float fogG = 0.5;
+    float fogB = 0.5;
+
 } debug;
 
 // Palettes, think of a better way to do this later
@@ -157,6 +164,62 @@ void Scene::createFrameBuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void Scene::createHeightBuffer() {
+    glCreateFramebuffers(1, &elevation_fbo);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, elevation_fbo);
+
+    { // Create Depth
+        glGenTextures(1, &elevation_texture);
+        glBindTexture(GL_TEXTURE_2D,elevation_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 800, 600, 0, GL_RGBA,GL_UNSIGNED_BYTE,NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,elevation_texture,0);
+
+        glGenTextures(1, &elevation_depth);
+        glBindTexture(GL_TEXTURE_2D, elevation_depth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, elevation_depth, 0);
+    }
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
+        printf("It's not complete for height :(\n");
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Scene::createIsolationBuffer() {
+    glCreateFramebuffers(1, &isolation_fbo);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, isolation_fbo);
+
+    { // Create Depth
+
+        glGenTextures(1, &isolation_texture);
+        glBindTexture(GL_TEXTURE_2D,isolation_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 800, 600, 0, GL_RGBA,GL_UNSIGNED_BYTE,NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,isolation_texture,0);
+
+        glGenTextures(1, &isolation_depth);
+        glBindTexture(GL_TEXTURE_2D, isolation_depth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, isolation_depth, 0);
+
+    }
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
+        printf("It's not complete for height :(\n");
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 struct Framebuffer {
 
     GLuint framefbo; // frame buffer object
@@ -197,6 +260,8 @@ struct Framebuffer {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 } framebuff;
+
+Framebuffer isobuff;
     
 struct fullscreenQuad
 {
@@ -252,7 +317,7 @@ void Scene::assignEffect(ew::Shader* shader) {
     // no fullscreen
     glBindVertexArray(fullQuad.vao);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, framebuff.framefbo_texture);
+    glBindTexture(GL_TEXTURE_2D, isobuff.framefbo_texture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     
 }
@@ -261,6 +326,8 @@ Scene::Scene()
 {
     monument = std::make_unique<ew::Model>("assets/models/MonumentValley-compressed.obj");
     ambient = std::make_unique<ew::Shader>("assets/shaders/cocoa/ambient.vs", "assets/shaders/cocoa/ambient.fs");
+    elevation = std::make_unique<ew::Shader>("assets/shaders/IkoFinalShaders/elevation.vs", "assets/shaders/IkoFinalShaders/elevation.fs");
+    elevationFade = std::make_unique<ew::Shader>("assets/shaders/fullscreen.vs", "assets/shaders/IkoFinalShaders/mistfade.fs");
 
     depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
@@ -274,6 +341,11 @@ Scene::Scene()
 
     fullQuad.Init();
     framebuff.init();
+    isobuff.init();
+
+    //createFrameBuffer();
+    createHeightBuffer();
+    createIsolationBuffer();
 
     // DONT USE MATTY THING
     //createFrameBuffer();
@@ -355,6 +427,76 @@ void Scene::Render(void)
 
     // Cleaning up, just in case
     glDisable(GL_BLEND);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, elevation_fbo);
+    {
+        const auto view_proj = camera.Projection() * camera.View();
+
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        glClearColor(0.0f,0.0f,0.0f,0.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        elevation->use();
+
+        elevation->setMat4("model", newModelMatrix);
+        elevation->setMat4("view_proj", view_proj);
+
+        monument->draw();
+        //const auto plane_matrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -2.0f, 0.0f));
+        //elevation->setMat4("model", plane_matrix);
+        //plane.draw();
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, elevation_texture);
+    {
+        const auto view_proj = camera.Projection() * camera.View();
+        // local scope
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glEnable(GL_DEPTH_TEST);
+
+        elevation->use();
+
+        // scene matrices
+        elevation->setFloat("fog_range", debug.fogRange);
+        elevation->setFloat("fog_height", debug.fogHeight);
+        elevation->setMat4("model", newModelMatrix);
+        elevation->setMat4("view_proj", view_proj);
+
+        monument->draw();
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+    glBindFramebuffer(GL_FRAMEBUFFER, isobuff.framefbo);
+    {
+        glClearColor(debug.backgroundColor.x ,debug.backgroundColor.y, debug.backgroundColor.z, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+    
+        
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, elevation_texture);
+        elevationFade->use();
+        elevationFade->setInt("screen", 0);
+        elevationFade->setInt("mist_effect", 1);
+
+        glBindVertexArray(fullQuad.vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, framebuff.framefbo_texture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -441,12 +583,32 @@ void Scene::Debug(void)
         debug.palette1 = lerp(dayPalette.accent1, nightPalette.accent1, debug.lerpFactor);
         debug.palette2 = lerp(dayPalette.accent2, nightPalette.accent2, debug.lerpFactor);
     }
+
+    if (ImGui::CollapsingHeader("Fog"))
+    {
+        ImVec2 uv_min(0.0f, 1.0f);
+        ImVec2 uv_max(1.0f, 0.0f);
+
+        debug.fogtoggle = true;
+        ImGui::SliderFloat("Fog Height", &debug.fogHeight, -15.0f, 8.0f);
+        ImGui::SliderFloat("Fog Fade Range", &debug.fogRange, 0.1f, 3.0f);
+
+        ImGui::Text("Elevation:");
+        ImGui::Image((ImTextureID)(intptr_t) elevation_texture, ImVec2(200, 150), uv_min, uv_max);
+
+        //ImGui::Text("Isolation:");
+        //ImGui::Image((ImTextureID)(intptr_t) isolation_texture, ImVec2(200, 150), uv_min, uv_max);
+    }
+    else{
+        debug.fogtoggle = false;
+    }
     // Anything else that's cute?
     
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
         //ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
 
         ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)isobuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     ImGui::End();
