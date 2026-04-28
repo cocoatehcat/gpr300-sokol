@@ -274,11 +274,7 @@ void Scene::assignEffect(ew::Shader* shader) {
     shader->setInt("sceneTexture", 0);
     shader->setInt("sceneTexture", fbo_depth);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, elevation_texture);
-    shader->setInt("mist_effect", 1);
+    
     glDisable(GL_DEPTH_TEST);
 
     //glClearColor(0.2f, 0.3f, 0.3f, 1.0f); Does nothing

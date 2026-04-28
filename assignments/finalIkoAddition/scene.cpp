@@ -101,6 +101,49 @@ struct {
     }
 } shadowBuffer;
 
+struct Framebuffer {
+
+    GLuint framefbo; // frame buffer object
+    GLuint framefbo_texture;
+    GLuint framefbo_depth;
+    
+    void init() {
+        glCreateFramebuffers(1, &framefbo);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, framefbo);
+
+        { // Create Texture
+            glGenTextures(1, &framefbo_texture);
+            glBindTexture(GL_TEXTURE_2D, framefbo_texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 800, 600, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, framefbo_texture, 0);
+
+            glGenTextures(1, &framefbo_depth);
+            glBindTexture(GL_TEXTURE_2D, framefbo_depth);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, 800, 600, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, framefbo_depth, 0);
+
+            // clean up
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_texture, 0);
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER != GL_FRAMEBUFFER_COMPLETE)) {
+            printf("It's not complete :(\n");
+        }
+
+        // Has to unbind or else it will create a black screen
+        // All functions will be operating on Framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+} framebuff;
+
+Framebuffer isobuff;
+
 void Scene::createDepthBuffer() {
     glCreateFramebuffers(1, &shadow_fbo);
 
@@ -257,23 +300,28 @@ struct fullscreenQuad
     }
 } fullQuad;
 
-// Assigns effect, currently is the Vignette
 void Scene::assignEffect(ew::Shader* shader) {
 
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    //glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    shader->use();
+    shader->setVec3("backcolor", debug.backgroundColor);
+    shader->setInt("sceneTexture", 0);
+    shader->setInt("sceneTexture", fbo_depth);
+
     glDisable(GL_DEPTH_TEST);
 
     //glClearColor(0.2f, 0.3f, 0.3f, 1.0f); Does nothing
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    shader->use();
-    shader->setVec3("backcolor", debug.backgroundColor);
-
     // no fullscreen
     glBindVertexArray(fullQuad.vao);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, isobuff.framefbo_texture);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     
 }
+
 
 Scene::Scene()
 {
@@ -284,7 +332,7 @@ Scene::Scene()
     depth = std::make_unique<ew::Shader>("assets/shaders/depth.vs", "assets/shaders/depth.fs");
 
     // Vignette! This can be changed
-    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/cocoa/vignette.vs", "assets/shaders/cocoa/vignette.fs"));
+    postProcessingEffects.push_back(std::make_unique<ew::Shader>("assets/shaders/cocoa/vignette.vs", "assets/shaders/cocoa/vignetteInFront.fs"));
 
     light = {
         .color = {1.0f, 1.0f, 1.0f},
@@ -292,8 +340,10 @@ Scene::Scene()
     };
 
     fullQuad.Init();
+    framebuff.init();
+    isobuff.init();
 
-    createFrameBuffer();
+    //createFrameBuffer();
     createHeightBuffer();
     createIsolationBuffer();
 }
@@ -313,11 +363,6 @@ void Scene::Update(float dt)
 
 void Scene::Render(void)
 {
-    
-    // Vignette, I'm too lazy to change from the previous system
-    // But let me know if it's a problem and I'll fix it
-    assignEffect(postProcessingEffects[debug.indexEffect].get());
-
     // Actual Beginning of Pipeline
     auto newModelMatrix = 
         glm::translate(glm::mat4(1.0f), debug.modelPos)
@@ -334,9 +379,16 @@ void Scene::Render(void)
     //glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuff.framefbo);
+
+    glClearColor(debug.backgroundColor.x, debug.backgroundColor.y, debug.backgroundColor.z, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST); // Enable stencil
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); // Replace stencil value on pass
 
     // See through vignette
     glEnable(GL_BLEND);
@@ -364,20 +416,25 @@ void Scene::Render(void)
     // Scaling down the giant model!
     auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); 
     ambient->setMat4("model", newModelMatrix);
+
+    glStencilFunc(GL_ALWAYS, 1, 0xFF); // Set stencil value to 1
+    glStencilMask(0xFF); // writing to stencil
+
     monument->draw();
+
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF); // Set stencil value to 1
+    glStencilMask(0x00);
 
     // Cleaning up, just in case
     glDisable(GL_BLEND);
 
     // Blitzing the vignette with the model
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    // glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+    // glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    // glBlitFramebuffer(0, 0, kFramebufferWidth, kFramebufferHeight, 0, 0, kFramebufferWidth, kFramebufferHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    if(debug.fogtoggle)
-    {
-        glBindFramebuffer(GL_FRAMEBUFFER, elevation_fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, elevation_fbo);
     {
         const auto view_proj = camera.Projection() * camera.View();
 
@@ -400,7 +457,7 @@ void Scene::Render(void)
         //plane.draw();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+    
     glBindFramebuffer(GL_FRAMEBUFFER, elevation_texture);
     {
         const auto view_proj = camera.Projection() * camera.View();
@@ -425,30 +482,32 @@ void Scene::Render(void)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-    glBindFramebuffer(GL_FRAMEBUFFER, isolation_texture);
+    glBindFramebuffer(GL_FRAMEBUFFER, isobuff.framefbo);
     {
         glClearColor(debug.backgroundColor.x ,debug.backgroundColor.y, debug.backgroundColor.z, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
-        glBindVertexArray(fullQuad.vao);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, fbo_texture);
+    
+        
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, elevation_texture);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, fbo_texture);
         elevationFade->use();
         elevationFade->setInt("screen", 0);
         elevationFade->setInt("mist_effect", 1);
-        elevationFade->setInt("background", 2);
+
+        glBindVertexArray(fullQuad.vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, framebuff.framefbo_texture);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
-
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
+
     
+    // Vignette, I'm too lazy to change from the previous system
+    // But let me know if it's a problem and I'll fix it
+    assignEffect(postProcessingEffects[debug.indexEffect].get());
 
     //glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     //glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fullQuad.vao);
@@ -551,7 +610,9 @@ void Scene::Debug(void)
     // Anything else that's cute?
     
     if (ImGui::CollapsingHeader("Framebuffer Images")) {
-        ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        //ImGui::Image((void*)(intptr_t)fbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)framebuff.framefbo_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
+        ImGui::Image((void*)(intptr_t)isolation_texture, ImVec2(400, 300), ImVec2(0, 1), ImVec2(1, 0));
     }
 
     ImGui::End();
