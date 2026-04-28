@@ -27,7 +27,7 @@ struct {
 
     //water debug variables
     glm::vec4 waterColor = glm::vec4(0.0, 0.6, 1.0, 1.0);
-    float waveScale = 5.0;
+    float waveScale = 15.0;
     float waveSpecIntensity = 0.25;
 
     float waveAmplitude = 0.75;
@@ -452,117 +452,114 @@ void Scene::Render(void)
     // Model Pipeline
     const auto view_proj = camera.Projection() * camera.View();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuff.framefbo);
-
-    // Will Clear Vignette
-    glClearColor(debug.backgroundColor.x, debug.backgroundColor.y, debug.backgroundColor.z, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_STENCIL_TEST); // Enable stencil
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); // Replace stencil value on pass
-
-    // See through vignette
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, shadow_depth);
-
-    ambient->use();
-
-    // scene matrices
-    ambient->setMat4("view_proj", view_proj);
-    ambient->setVec3("camera_position", camera.position);
-    ambient->setMat4("light_view_proj", light_view_proj);
-
-    // Set uniforms
-    ambient->setVec3("camera", camera.position);
-    ambient->setVec3("light.position", light.position);
-    ambient->setVec3("light.color", light.color);
-    ambient->setVec3("floorColor", debug.floor);
-
-    ambient->setVec3("pal.lit", debug.palette1);
-    ambient->setVec3("pal.unlit", debug.palette2);
-
-    // Scaling down the giant model!
-    auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); 
-    ambient->setMat4("model", newModelMatrix);
-
-    glStencilFunc(GL_ALWAYS, 1, 0xFF); // Set stencil value to 1
-    glStencilMask(0xFF); // writing to stencil
-
-    monument->draw();
-
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF); // Set stencil value to 1
-    glStencilMask(0x00);
-
-    //draw to reflection and refraction
+    // render reflections and refractions
     glEnable(GL_CLIP_DISTANCE0);
-
-    ReflectionPass(view_proj, monument.get(), glm::vec4(0, 1, 0, 0));
-    RefractionPass(view_proj, monument.get(), glm::vec4(0, -1, 0, 0));
-    
+    ReflectionPass(view_proj, monument.get(), glm::vec4(0, 1, 0, debug.modelPos.y));
+    RefractionPass(view_proj, monument.get(), glm::vec4(0, -1, 0, debug.modelPos.y));
     glDisable(GL_CLIP_DISTANCE0);
 
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuff.framefbo);
+    {
+        // Will Clear Vignette
+        glClearColor(debug.backgroundColor.x, debug.backgroundColor.y, debug.backgroundColor.z, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    //Water time
-    //glBindFramebuffer(GL_FRAMEBUFFER, waterBuffer.fbo);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_STENCIL_TEST); // Enable stencil
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); // Replace stencil value on pass
 
-    //bind textures
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, reflection.color0);
+        // See through vignette
+        // glEnable(GL_BLEND);
+        // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // glActiveTexture(GL_TEXTURE3);
+        // glBindTexture(GL_TEXTURE_2D, shadow_depth);
 
-    glActiveTexture(GL_TEXTURE5);
-    glBindTexture(GL_TEXTURE_2D, refraction.color0);
+        ambient->use();
 
-    glActiveTexture(GL_TEXTURE6);
-    glBindTexture(GL_TEXTURE_2D, refraction.depth);
+        // scene matrices
+        ambient->setMat4("view_proj", view_proj);
+        ambient->setVec3("camera_position", camera.position);
+        ambient->setMat4("light_view_proj", light_view_proj);
 
-    glActiveTexture(GL_TEXTURE7);
-    glBindTexture(GL_TEXTURE_2D, waveWarp->getID());
+        // Set uniforms
+        ambient->setVec3("camera", camera.position);
+        ambient->setVec3("light.position", light.position);
+        ambient->setVec3("light.color", light.color);
+        ambient->setVec3("floorColor", debug.floor);
 
-    glActiveTexture(GL_TEXTURE8);
-    glBindTexture(GL_TEXTURE_2D, waveSpec->getID());
+        ambient->setVec3("pal.lit", debug.palette1);
+        ambient->setVec3("pal.unlit", debug.palette2);
 
-    water->use();
+        // Scaling down the giant model!
+        auto scale_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.01f, 0.01f, 0.01f)); 
+        ambient->setMat4("model", newModelMatrix);
 
-    water->setInt("reflection", 4);
-    water->setInt("refraction", 5);
-    water->setInt("depthTexture", 6);
-    water->setInt("waveWarp", 7);
-    water->setInt("waveSpec", 8);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF); // Set stencil value to 1
+        glStencilMask(0xFF); // writing to stencil
+        monument->draw();
 
-    water->setMat4("model", glm::mat4(1.0));
-    water->setMat4("view_proj", view_proj);
-    water->setFloat("time", (float)time.absolute);
-    water->setVec3("cameraPos", camera.position);
+
+        // glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        //Water time
+        //glBindFramebuffer(GL_FRAMEBUFFER, waterBuffer.fbo);
+
+        //bind textures
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, reflection.color0);
+
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, refraction.color0);
+
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, refraction.depth);
+
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, waveWarp->getID());
+
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, waveSpec->getID());
+
+        water->use();
+
+        water->setInt("reflection", 4);
+        water->setInt("refraction", 5);
+        water->setInt("depthTexture", 6);
+        water->setInt("waveWarp", 7);
+        water->setInt("waveSpec", 8);
+
+        water->setMat4("model", glm::mat4(1.0));
+        water->setMat4("view_proj", view_proj);
+        water->setFloat("time", (float)time.absolute);
+        water->setVec3("cameraPos", camera.position);
+            
+        water->setFloat("waveAmp", debug.waveAmplitude);
+        water->setFloat("waveLength", debug.waveLength);
+        water->setFloat("waveSpeed", debug.waveLength);
         
-    water->setFloat("waveAmp", debug.waveAmplitude);
-    water->setFloat("waveLength", debug.waveLength);
-    water->setFloat("waveSpeed", debug.waveLength);
-    
-    water->setVec4("waterColor", debug.waterColor);
-    water->setFloat("waveTime", (float)time.absolute);
-    water->setVec2("nearFarPlanes", glm::vec2(0.0, 10.0));
-    water->setFloat("scale", debug.waveScale);
-    water->setFloat("specIntensity", debug.waveSpecIntensity);
-    water->setVec3("light.color", light.color);
-    water->setVec3("light.position", light.position);
-    
-    water->setFloat("minBlueness", debug.minBlue);
-    water->setFloat("maxBlueness", debug.maxBlue);
-    water->setFloat("murkyDepth", debug.murkyDepth);
+        water->setVec4("waterColor", debug.waterColor);
+        water->setFloat("waveTime", (float)time.absolute);
+        water->setVec2("nearFarPlanes", glm::vec2(0.0, 10.0));
+        water->setFloat("scale", debug.waveScale);
+        water->setFloat("specIntensity", debug.waveSpecIntensity);
+        water->setVec3("light.color", light.color);
+        water->setVec3("light.position", light.position);
+        
+        water->setFloat("minBlueness", debug.minBlue);
+        water->setFloat("maxBlueness", debug.maxBlue);
+        water->setFloat("murkyDepth", debug.murkyDepth);
 
-    plane.draw();
+        plane.draw();
 
-    // Cleaning up, just in case
-    glDisable(GL_BLEND);
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF); // Set stencil value to 1
+        glStencilMask(0x00);
 
+        // Cleaning up, just in case
+        glDisable(GL_BLEND);
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Vignette, I'm too lazy to change from the previous system
@@ -662,7 +659,7 @@ void Scene::Debug(void)
         ImGui::SliderFloat("Wave Length", &debug.waveLength, 0.1, 20.0);
         ImGui::SliderFloat("Wave Speed", &debug.waveSpeed, 0.01, 5.0);
     
-        ImGui::SliderFloat("Wave Scale", &debug.waveScale, 0.1, 15.0);
+        ImGui::SliderFloat("Wave Scale", &debug.waveScale, 0.1, 45.0);
         ImGui::SliderFloat("Wave Specular Intensity", &debug.waveSpecIntensity, 0.1, 1.0);
     
         ImGui::SliderFloat("Min Blueness", &debug.minBlue, 0.01, 1.0);
